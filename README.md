@@ -1,5 +1,12 @@
 # 🔋 Battery Monitor — Tuya (DT20W)
 
+[![License: MIT](https://img.shields.io/github/license/scatari69/batterypitek?color=green)](LICENSE)
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
+![Tuya Cloud](https://img.shields.io/badge/Tuya-Cloud%20API-FF4800?logo=tuya&logoColor=white)
+![Last commit](https://img.shields.io/github/last-commit/scatari69/batterypitek)
+
 Веб-мониторинг литиевых батарей по данным из **Tuya Cloud API**. Несколько
 устройств из одного аккаунта, наглядный дашборд, оценка времени до разряда.
 Python (FastAPI) + Docker. Всё настраивается через **веб-панель администратора** —
