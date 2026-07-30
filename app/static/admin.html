@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Battery Monitor · настройки</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page:#f9f9f7; --surface:#fcfcfb; --surface-2:#f2f1ec;
+    --text-primary:#0b0b0b; --text-secondary:#52514e; --muted:#898781;
+    --border:rgba(11,11,11,0.12); --field:#ffffff;
+    --series-1:#2a78d6; --good:#0ca30c; --warning:#fab219; --critical:#d03b3b;
+    --radius:14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --page:#0d0d0d; --surface:#1a1a19; --surface-2:#232320;
+      --text-primary:#ffffff; --text-secondary:#c3c2b7; --muted:#898781;
+      --border:rgba(255,255,255,0.14); --field:#111110;
+      --series-1:#3987e5; --good:#0ca30c; --warning:#fab219; --critical:#d03b3b;
+    }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--page); color:var(--text-primary);
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif; line-height:1.45;
+    -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:760px; margin:0 auto; padding:24px 20px 120px; }
+  a { color:var(--series-1); }
+
+  .back { display:inline-flex; gap:6px; font-size:13px; color:var(--text-secondary);
+    text-decoration:none; margin-bottom:10px; }
+  .back:hover { color:var(--text-primary); }
+  header { display:flex; align-items:center; gap:12px; margin-bottom:20px; }
+  header h1 { font-size:21px; margin:0; font-weight:650; }
+  .spacer { flex:1; }
+  .linkbtn { background:none; border:none; color:var(--text-secondary); cursor:pointer;
+    font-size:13px; }
+  .linkbtn:hover { color:var(--text-primary); }
+
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    padding:18px 18px 20px; margin-bottom:16px; }
+  .card h2 { font-size:15px; margin:0 0 4px; font-weight:640; }
+  .card .desc { font-size:12.5px; color:var(--muted); margin:0 0 14px; }
+
+  label { display:block; font-size:12.5px; color:var(--text-secondary); margin:12px 0 5px; font-weight:560; }
+  input[type=text], input[type=password], input[type=number], select {
+    width:100%; padding:9px 11px; font-size:14px; color:var(--text-primary);
+    background:var(--field); border:1px solid var(--border); border-radius:9px;
+    font-family:inherit; }
+  input:focus, select:focus { outline:2px solid color-mix(in srgb,var(--series-1) 55%,transparent);
+    outline-offset:-1px; border-color:var(--series-1); }
+  .row { display:flex; gap:10px; align-items:center; }
+  .row.wrap { flex-wrap:wrap; }
+  .hint { font-size:11.5px; color:var(--muted); margin-top:4px; }
+
+  .btn { font-size:13.5px; font-weight:600; padding:9px 15px; border-radius:9px; cursor:pointer;
+    border:1px solid var(--border); background:var(--surface-2); color:var(--text-primary);
+    font-family:inherit; white-space:nowrap; }
+  .btn:hover { border-color:var(--text-secondary); }
+  .btn.primary { background:var(--series-1); border-color:var(--series-1); color:#fff; }
+  .btn.primary:hover { filter:brightness(1.06); }
+  .btn.ghost { background:none; }
+  .btn.danger { color:var(--critical); }
+  .btn:disabled { opacity:.5; cursor:default; }
+
+  .toggle { display:flex; align-items:center; gap:10px; margin-top:14px; }
+  .toggle input { width:18px; height:18px; accent-color:var(--series-1); }
+  .toggle .t { font-size:13.5px; }
+
+  .result { font-size:13px; margin-top:12px; padding:10px 12px; border-radius:9px; display:none; }
+  .result.show { display:block; }
+  .result.ok { background:color-mix(in srgb,var(--good) 14%,var(--surface)); color:var(--text-primary);
+    border:1px solid color-mix(in srgb,var(--good) 45%,transparent); }
+  .result.err { background:color-mix(in srgb,var(--critical) 12%,var(--surface)); color:var(--text-primary);
+    border:1px solid color-mix(in srgb,var(--critical) 45%,transparent); }
+
+  .devrow { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+  .devrow .nm { flex:1.2; } .devrow .id { flex:1.6; }
+  .devrow input { font-size:13px; padding:8px 10px; }
+  .icon-btn { border:1px solid var(--border); background:var(--surface-2); color:var(--text-secondary);
+    border-radius:8px; width:34px; height:34px; cursor:pointer; flex:0 0 auto; font-size:15px; }
+  .icon-btn:hover { color:var(--critical); border-color:var(--critical); }
+  .devhdr { display:flex; gap:8px; font-size:11.5px; color:var(--muted); margin-bottom:6px; padding:0 2px; }
+  .devhdr .nm { flex:1.2; } .devhdr .id { flex:1.6; } .devhdr .sp { width:34px; }
+
+  .discover { margin-top:12px; border-top:1px solid var(--border); padding-top:12px; }
+  .disc-item { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); }
+  .disc-item:last-child { border-bottom:none; }
+  .disc-item .dn { font-size:13.5px; font-weight:560; }
+  .disc-item .di { font-size:11px; color:var(--muted); font-family:ui-monospace,monospace; }
+  .disc-item .st { font-size:11px; padding:2px 7px; border-radius:999px; border:1px solid var(--border); }
+  .disc-item .st.on { color:var(--good); } .disc-item .st.off { color:var(--muted); }
+
+  .warn-banner { background:color-mix(in srgb,var(--warning) 15%,var(--surface));
+    border:1px solid color-mix(in srgb,var(--warning) 50%,transparent); border-radius:12px;
+    padding:12px 15px; font-size:13px; margin-bottom:16px; display:flex; gap:12px; align-items:center; }
+  .warn-banner .spacer { flex:1; }
+
+  .savebar { position:fixed; left:0; right:0; bottom:0; background:color-mix(in srgb,var(--surface) 92%,transparent);
+    backdrop-filter:blur(8px); border-top:1px solid var(--border); padding:12px 20px; }
+  .savebar .inner { max-width:760px; margin:0 auto; display:flex; align-items:center; gap:14px; }
+  .savebar .msg { font-size:13px; color:var(--muted); }
+
+  /* Логин */
+  .overlay { position:fixed; inset:0; background:color-mix(in srgb,var(--page) 82%,transparent);
+    backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; z-index:50; padding:20px; }
+  .overlay .box { background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    padding:24px; width:100%; max-width:360px; }
+  .overlay h2 { margin:0 0 4px; font-size:18px; }
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+<div class="wrap" id="panel">
+  <a class="back" href="/">← К дашборду</a>
+  <header>
+    <h1>⚙ Настройки</h1>
+    <div class="spacer"></div>
+    <button class="linkbtn hidden" id="logoutBtn" onclick="logout()">Выйти</button>
+  </header>
+
+  <div class="warn-banner hidden" id="warnBanner">
+    <span>🔓 Панель не защищена паролем — задайте его в разделе «Безопасность».</span>
+  </div>
+
+  <!-- Подключение Tuya -->
+  <div class="card">
+    <h2>Подключение Tuya</h2>
+    <p class="desc">Реквизиты из проекта на <a href="https://iot.tuya.com" target="_blank" rel="noopener">iot.tuya.com</a>
+      (Cloud → ваш проект → Overview). Общие для всех устройств аккаунта.</p>
+
+    <label>Access ID</label>
+    <input type="text" id="access_id" autocomplete="off" spellcheck="false" placeholder="например, 3x8k...">
+
+    <label>Access Secret</label>
+    <input type="password" id="access_key" autocomplete="off" placeholder="введите секрет">
+    <div class="hint" id="keyHint"></div>
+
+    <label>Регион дата-центра</label>
+    <select id="endpoint">
+      <option value="https://openapi.tuyaeu.com">Центральная Европа (tuyaeu)</option>
+      <option value="https://openapi.tuyaus.com">Западная Америка (tuyaus)</option>
+      <option value="https://openapi-ueaz.tuyaus.com">Восточная Америка (ueaz)</option>
+      <option value="https://openapi.tuyacn.com">Китай (tuyacn)</option>
+      <option value="https://openapi.tuyain.com">Индия (tuyain)</option>
+    </select>
+    <div class="hint">Должен совпадать с регионом аккаунта в приложении Smart Life / Tuya.</div>
+
+    <div class="row" style="margin-top:14px">
+      <button class="btn" id="testBtn" onclick="testConnection()">Проверить подключение</button>
+    </div>
+    <div class="result" id="testResult"></div>
+  </div>
+
+  <!-- Устройства -->
+  <div class="card">
+    <h2>Устройства</h2>
+    <p class="desc">Список батарей: имя (произвольное) и Device ID. Можно добавить вручную
+      или найти автоматически в аккаунте.</p>
+
+    <div class="devhdr"><span class="nm">Имя</span><span class="id">Device ID</span><span class="sp"></span></div>
+    <div id="devList"></div>
+
+    <div class="row wrap" style="margin-top:12px">
+      <button class="btn ghost" onclick="addDeviceRow('','')">＋ Добавить вручную</button>
+      <button class="btn" id="discoverBtn" onclick="discover()">🔍 Найти в аккаунте</button>
+    </div>
+    <div class="result" id="discoverResult"></div>
+    <div class="discover hidden" id="discoverList"></div>
+  </div>
+
+  <!-- Общие -->
+  <div class="card">
+    <h2>Общие параметры</h2>
+    <label>Интервал опроса, секунд</label>
+    <input type="number" id="poll_interval" min="3" max="600" style="max-width:160px">
+    <div class="toggle">
+      <input type="checkbox" id="demo_mode">
+      <span class="t">Демо-режим (сгенерированные данные без обращения к Tuya)</span>
+    </div>
+  </div>
+
+  <!-- Безопасность -->
+  <div class="card">
+    <h2>Безопасность</h2>
+    <p class="desc" id="secDesc">Пароль защищает админ-панель. Дашборд остаётся открытым.</p>
+    <div id="curPwWrap" class="hidden">
+      <label>Текущий пароль</label>
+      <input type="password" id="cur_pw" autocomplete="off">
+    </div>
+    <label>Новый пароль</label>
+    <input type="password" id="new_pw" autocomplete="off" placeholder="минимум 4 символа">
+    <div class="row" style="margin-top:12px">
+      <button class="btn" onclick="savePassword()" id="pwBtn">Сохранить пароль</button>
+    </div>
+    <div class="result" id="pwResult"></div>
+  </div>
+</div>
+
+<div class="savebar" id="savebar">
+  <div class="inner">
+    <button class="btn primary" id="saveBtn" onclick="saveSettings()">Сохранить настройки</button>
+    <span class="msg" id="saveMsg"></span>
+  </div>
+</div>
+
+<!-- Логин -->
+<div class="overlay hidden" id="loginOverlay">
+  <div class="box">
+    <h2>🔒 Вход</h2>
+    <p class="desc" style="color:var(--muted);font-size:13px">Введите пароль администратора.</p>
+    <label>Пароль</label>
+    <input type="password" id="login_pw" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    <div class="result err" id="loginErr" style="margin-bottom:12px"></div>
+    <button class="btn primary" style="width:100%" onclick="doLogin()">Войти</button>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const TOKEN_KEY = "bm_admin_token";
+let authEnabled = false;
+
+function token(){ return localStorage.getItem(TOKEN_KEY) || ""; }
+function setToken(t){ t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); }
+
+async function api(path, method="GET", body=null){
+  const opts = { method, headers:{} };
+  if (body != null){ opts.headers["Content-Type"]="application/json"; opts.body=JSON.stringify(body); }
+  const t = token();
+  if (t) opts.headers["Authorization"] = "Bearer " + t;
+  const resp = await fetch(path, opts);
+  if (resp.status === 401){ showLogin(); throw new Error("unauthorized"); }
+  const data = await resp.json().catch(()=>({}));
+  if (!resp.ok) throw new Error(data.detail || `HTTP ${resp.status}`);
+  return data;
+}
+
+function showResult(el, ok, msg){
+  el.className = "result show " + (ok ? "ok" : "err");
+  el.textContent = msg;
+}
+
+/* ---------------- Загрузка настроек ---------------- */
+async function load(){
+  let s;
+  try { s = await api("/api/admin/settings"); }
+  catch(e){ if (e.message === "unauthorized") return; showToast("Ошибка загрузки: "+e.message); return; }
+
+  authEnabled = s.auth_enabled;
+  $("loginOverlay").classList.add("hidden");
+  $("warnBanner").classList.toggle("hidden", authEnabled);
+  $("logoutBtn").classList.toggle("hidden", !authEnabled);
+  $("curPwWrap").classList.toggle("hidden", !authEnabled);
+  $("secDesc").textContent = authEnabled
+    ? "Пароль установлен. Чтобы сменить — введите текущий и новый."
+    : "Пароль не задан. Панель открыта всем в сети — рекомендуем задать пароль.";
+  $("pwBtn").textContent = authEnabled ? "Сменить пароль" : "Установить пароль";
+
+  $("access_id").value = s.access_id || "";
+  $("access_key").value = "";
+  $("access_key").placeholder = s.has_key ? `сохранён (${s.key_hint}) — оставьте пустым` : "введите секрет";
+  $("keyHint").textContent = s.has_key ? "Оставьте поле пустым, чтобы не менять сохранённый секрет." : "";
+  if (s.endpoint) $("endpoint").value = s.endpoint;
+  $("poll_interval").value = s.poll_interval || 10;
+  $("demo_mode").checked = !!s.demo_mode;
+
+  $("devList").innerHTML = "";
+  (s.devices || []).forEach(d => addDeviceRow(d.name, d.id));
+  if (!(s.devices||[]).length) addDeviceRow("", "");
+}
+
+/* ---------------- Устройства ---------------- */
+function addDeviceRow(name, id){
+  const row = document.createElement("div");
+  row.className = "devrow";
+  row.innerHTML = `
+    <input class="nm" type="text" placeholder="Имя (напр. Гараж)" value="${escapeAttr(name)}">
+    <input class="id" type="text" spellcheck="false" placeholder="Device ID" value="${escapeAttr(id)}">
+    <button class="icon-btn" title="Удалить" onclick="this.parentElement.remove()">✕</button>`;
+  $("devList").appendChild(row);
+}
+function collectDevices(){
+  return [...document.querySelectorAll("#devList .devrow")].map(r => ({
+    name: r.querySelector(".nm").value.trim(),
+    id: r.querySelector(".id").value.trim(),
+  })).filter(d => d.id);
+}
+function deviceExists(id){
+  return [...document.querySelectorAll("#devList .id")].some(i => i.value.trim() === id);
+}
+function escapeAttr(s){ return String(s ?? "").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
+
+async function discover(){
+  const btn = $("discoverBtn"); btn.disabled = true; btn.textContent = "Поиск…";
+  const res = $("discoverResult"); res.className = "result";
+  try {
+    const data = await api("/api/admin/discover");
+    const list = data.devices || [];
+    const box = $("discoverList");
+    if (!list.length){ showResult(res, false, "Устройства в аккаунте не найдены."); box.classList.add("hidden"); return; }
+    box.innerHTML = `<div class="row" style="justify-content:space-between;margin-bottom:8px">
+        <b style="font-size:13px">Найдено: ${list.length}</b>
+        <button class="btn ghost" onclick="addAllDiscovered()">Добавить все</button></div>` +
+      list.map(d => `
+      <div class="disc-item" data-id="${escapeAttr(d.id)}" data-name="${escapeAttr(d.name)}">
+        <div style="flex:1">
+          <div class="dn">${escapeAttr(d.name)}</div>
+          <div class="di">${escapeAttr(d.id)}${d.product_name ? " · "+escapeAttr(d.product_name) : ""}</div>
+        </div>
+        <span class="st ${d.online?"on":"off"}">${d.online?"онлайн":"офлайн"}</span>
+        <button class="btn ghost" onclick="addDiscovered(this)">Добавить</button>
+      </div>`).join("");
+    box.classList.remove("hidden");
+    res.className = "result";
+  } catch(e){
+    if (e.message !== "unauthorized") showResult(res, false, "Ошибка: " + e.message);
+  } finally { btn.disabled = false; btn.textContent = "🔍 Найти в аккаунте"; }
+}
+function addDiscovered(btn){
+  const item = btn.closest(".disc-item");
+  const id = item.dataset.id, name = item.dataset.name;
+  if (deviceExists(id)){ btn.textContent = "уже добавлено"; btn.disabled = true; return; }
+  addDeviceRow(name, id);
+  btn.textContent = "✓ добавлено"; btn.disabled = true;
+}
+function addAllDiscovered(){
+  document.querySelectorAll("#discoverList .disc-item").forEach(item => {
+    if (!deviceExists(item.dataset.id)) addDeviceRow(item.dataset.name, item.dataset.id);
+  });
+  showToast("Устройства добавлены в список — не забудьте сохранить.");
+}
+
+/* ---------------- Проверка / сохранение ---------------- */
+async function testConnection(){
+  const btn = $("testBtn"); btn.disabled = true; btn.textContent = "Проверка…";
+  try {
+    const data = await api("/api/admin/test-connection", "POST", {
+      access_id: $("access_id").value.trim(),
+      access_key: $("access_key").value.trim(),
+      endpoint: $("endpoint").value,
+    });
+    showResult($("testResult"), data.ok, data.message);
+  } catch(e){
+    if (e.message !== "unauthorized") showResult($("testResult"), false, "Ошибка: " + e.message);
+  } finally { btn.disabled = false; btn.textContent = "Проверить подключение"; }
+}
+
+async function saveSettings(){
+  const btn = $("saveBtn"); btn.disabled = true;
+  const payload = {
+    access_id: $("access_id").value.trim(),
+    endpoint: $("endpoint").value,
+    poll_interval: parseInt($("poll_interval").value) || 10,
+    demo_mode: $("demo_mode").checked,
+    devices: collectDevices(),
+  };
+  const key = $("access_key").value.trim();
+  if (key) payload.access_key = key;
+  try {
+    await api("/api/admin/settings", "POST", payload);
+    showToast("✓ Сохранено");
+    $("access_key").value = "";
+    load();
+  } catch(e){
+    if (e.message !== "unauthorized") showToast("Ошибка: " + e.message);
+  } finally { btn.disabled = false; }
+}
+
+async function savePassword(){
+  const res = $("pwResult");
+  const newPw = $("new_pw").value;
+  try {
+    const data = await api("/api/admin/password", "POST", {
+      current: $("cur_pw").value, new: newPw,
+    });
+    if (data.token) setToken(data.token);
+    $("new_pw").value = ""; $("cur_pw").value = "";
+    showResult(res, true, "Пароль сохранён.");
+    load();
+  } catch(e){
+    if (e.message !== "unauthorized") showResult(res, false, e.message);
+  }
+}
+
+/* ---------------- Логин ---------------- */
+function showLogin(){ $("loginOverlay").classList.remove("hidden"); $("login_pw").focus(); }
+async function doLogin(){
+  const err = $("loginErr"); err.classList.remove("show");
+  try {
+    const resp = await fetch("/api/admin/login", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ password: $("login_pw").value }),
+    });
+    const data = await resp.json();
+    if (!resp.ok){ err.textContent = data.detail || "Ошибка входа"; err.classList.add("show"); return; }
+    setToken(data.token || "");
+    $("login_pw").value = "";
+    load();
+  } catch(e){ err.textContent = "Ошибка: " + e.message; err.classList.add("show"); }
+}
+function logout(){ setToken(""); location.reload(); }
+
+function showToast(msg){ $("saveMsg").textContent = msg; clearTimeout(window._t);
+  window._t = setTimeout(()=>{ $("saveMsg").textContent=""; }, 4000); }
+
+load();
+</script>
+</body>
+</html>

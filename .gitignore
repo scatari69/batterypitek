@@ -1,0 +1,10 @@
+.env
+data/
+config/devices.yml
+.claude/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.idea/
+.vscode/

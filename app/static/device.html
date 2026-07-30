@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Battery Monitor · устройство</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page:#f9f9f7; --surface:#fcfcfb;
+    --text-primary:#0b0b0b; --text-secondary:#52514e; --muted:#898781;
+    --grid:#e1e0d9; --baseline:#c3c2b7; --border:rgba(11,11,11,0.10);
+    --series-1:#2a78d6; --series-fill:rgba(42,120,214,0.14);
+    --good:#0ca30c; --warning:#fab219; --critical:#d03b3b;
+    --radius:14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --page:#0d0d0d; --surface:#1a1a19;
+      --text-primary:#ffffff; --text-secondary:#c3c2b7; --muted:#898781;
+      --grid:#2c2c2a; --baseline:#383835; --border:rgba(255,255,255,0.10);
+      --series-1:#3987e5; --series-fill:rgba(57,135,229,0.16);
+      --good:#0ca30c; --warning:#fab219; --critical:#d03b3b;
+    }
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; background:var(--page); color:var(--text-primary);
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    line-height:1.4; -webkit-font-smoothing:antialiased;
+  }
+  .wrap { max-width:1040px; margin:0 auto; padding:24px 20px 48px; }
+  a { color:inherit; }
+
+  .back { display:inline-flex; align-items:center; gap:6px; font-size:13px;
+    color:var(--text-secondary); text-decoration:none; margin-bottom:10px; }
+  .back:hover { color:var(--text-primary); }
+  header { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:22px; }
+  header h1 { font-size:20px; margin:0; font-weight:650; }
+  .sub { color:var(--muted); font-size:13px; }
+  .badge {
+    font-size:11px; font-weight:600; letter-spacing:.02em; padding:3px 9px;
+    border-radius:999px; border:1px solid var(--border);
+  }
+  .badge.demo { color:var(--warning); border-color:color-mix(in srgb,var(--warning) 45%,transparent); }
+  .spacer { flex:1; }
+  .conn { display:flex; align-items:center; gap:7px; font-size:13px; color:var(--text-secondary); }
+  .dot { width:9px; height:9px; border-radius:50%; background:var(--muted); }
+  .dot.online { background:var(--good); box-shadow:0 0 0 3px color-mix(in srgb,var(--good) 22%,transparent); }
+  .dot.offline { background:var(--critical); box-shadow:0 0 0 3px color-mix(in srgb,var(--critical) 22%,transparent); }
+
+  .card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:18px;
+  }
+  .top { display:grid; grid-template-columns:minmax(240px,1fr) 1.4fr; gap:16px; margin-bottom:16px; }
+  @media (max-width:720px){ .top { grid-template-columns:1fr; } }
+
+  .battery-card { display:flex; flex-direction:column; gap:14px; }
+  .soc-num { font-size:52px; font-weight:680; line-height:1; letter-spacing:-.02em; }
+  .soc-num small { font-size:22px; color:var(--muted); font-weight:600; margin-left:4px; }
+  .state-line { display:flex; align-items:center; gap:8px; font-size:14px; color:var(--text-secondary); }
+  .state-pill { font-size:12px; font-weight:600; padding:3px 10px; border-radius:999px;
+    border:1px solid var(--border); display:inline-flex; align-items:center; gap:6px; }
+  .battery {
+    position:relative; height:34px; border:2px solid var(--baseline);
+    border-radius:8px; padding:3px; display:flex; align-items:stretch;
+  }
+  .battery::after {
+    content:""; position:absolute; right:-7px; top:50%; transform:translateY(-50%);
+    width:5px; height:14px; background:var(--baseline); border-radius:0 3px 3px 0;
+  }
+  .battery-fill { border-radius:4px; transition:width .5s ease, background .4s ease; min-width:2px; }
+  .cap-line { font-size:13px; color:var(--muted); }
+  .cap-line b { color:var(--text-secondary); font-weight:600; }
+  .eta-line { font-size:13.5px; color:var(--text-secondary); }
+  .eta-line b { color:var(--text-primary); font-weight:640; }
+
+  .tiles { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+  .tile { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
+  .tile .k { font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px; }
+  .tile .v { font-size:26px; font-weight:640; margin-top:6px; letter-spacing:-.01em;
+    font-variant-numeric:tabular-nums; }
+  .tile .v small { font-size:15px; color:var(--muted); font-weight:600; margin-left:3px; }
+  .tile .v.pos { color:var(--good); }
+  .tile .v.neg { color:var(--series-1); }
+
+  .chart-card { margin-bottom:16px; }
+  .chart-head { display:flex; align-items:baseline; gap:10px; margin-bottom:6px; }
+  .chart-head h2 { font-size:15px; margin:0; font-weight:620; }
+  .chart-head .now { margin-left:auto; font-size:13px; color:var(--text-secondary);
+    font-variant-numeric:tabular-nums; }
+  .chart-scroll { overflow-x:auto; }
+  svg.chart { width:100%; height:200px; display:block; touch-action:none; }
+  .tooltip {
+    position:fixed; pointer-events:none; z-index:10; background:var(--surface);
+    border:1px solid var(--border); border-radius:8px; padding:6px 9px; font-size:12px;
+    box-shadow:0 4px 16px rgba(0,0,0,.18); opacity:0; transition:opacity .1s; white-space:nowrap;
+  }
+  .tooltip b { font-variant-numeric:tabular-nums; }
+
+  h2.section { font-size:14px; color:var(--text-secondary); margin:22px 0 10px; font-weight:600; }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th, td { text-align:left; padding:9px 10px; border-bottom:1px solid var(--border); }
+  th { color:var(--muted); font-weight:600; font-size:12px; }
+  td.val { text-align:right; font-variant-numeric:tabular-nums; font-weight:600; }
+  td.code { color:var(--muted); font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; }
+  tr:last-child td { border-bottom:none; }
+
+  .error { display:none; background:color-mix(in srgb,var(--critical) 12%,var(--surface));
+    border:1px solid color-mix(in srgb,var(--critical) 40%,transparent); color:var(--text-primary);
+    border-radius:12px; padding:12px 16px; margin-bottom:16px; font-size:13.5px; }
+  .error.show { display:block; }
+  footer { margin-top:28px; color:var(--muted); font-size:12px; text-align:center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="/">← Все устройства</a>
+  <header>
+    <div>
+      <h1>🔋 <span id="devName">Устройство</span></h1>
+      <div class="sub" id="devsub">загрузка…</div>
+    </div>
+    <span class="badge demo" id="demoBadge" style="display:none">ДЕМО-РЕЖИМ</span>
+    <div class="spacer"></div>
+    <div class="conn">
+      <span class="dot" id="connDot"></span>
+      <span id="connText">Подключение…</span>
+    </div>
+  </header>
+
+  <div class="error" id="errorBox"></div>
+
+  <div class="top">
+    <div class="card battery-card">
+      <div><span class="soc-num" id="socNum">—<small>%</small></span></div>
+      <div class="battery"><div class="battery-fill" id="battFill" style="width:0"></div></div>
+      <div class="state-line"><span class="state-pill" id="statePill">—</span></div>
+      <div class="eta-line" id="etaLine"></div>
+      <div class="cap-line" id="capLine"></div>
+    </div>
+
+    <div class="tiles" id="tiles">
+      <div class="tile"><div class="k">⚡ Напряжение</div><div class="v" id="t_voltage">—</div></div>
+      <div class="tile"><div class="k">🔀 Ток</div><div class="v" id="t_current">—</div></div>
+      <div class="tile"><div class="k">💡 Мощность</div><div class="v" id="t_power">—</div></div>
+      <div class="tile"><div class="k">🌡️ Температура</div><div class="v" id="t_temp">—</div></div>
+    </div>
+  </div>
+
+  <div class="card chart-card">
+    <div class="chart-head">
+      <h2 id="chartTitle">История</h2>
+      <span class="now" id="chartNow"></span>
+    </div>
+    <div class="chart-scroll">
+      <svg class="chart" id="chart" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+
+  <h2 class="section">Все точки данных</h2>
+  <div class="card" style="padding:6px 4px">
+    <table>
+      <thead><tr><th>Параметр</th><th>Код (DP)</th><th style="text-align:right">Значение</th></tr></thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <footer id="footer">обновлено —</footer>
+</div>
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const DEVICE_ID = decodeURIComponent((location.pathname.split("/").filter(Boolean).pop()) || "");
+const HISTORY_MAX = 90;
+let history = [];
+let pollInterval = 10;
+let chartMeta = { unit:"", role:"" };
+
+function fmt(v, unit) {
+  if (v === null || v === undefined) return "—";
+  if (typeof v === "boolean") return v ? "да" : "нет";
+  if (typeof v === "number") {
+    const abs = Math.abs(v); let s;
+    if (Number.isInteger(v)) s = String(v);
+    else if (abs >= 100) s = v.toFixed(0);
+    else if (abs >= 10) s = v.toFixed(1);
+    else s = v.toFixed(2);
+    return unit ? `${s} ${unit}` : s;
+  }
+  return String(v);
+}
+function num(v, digits=2){
+  if (typeof v !== "number") return "—";
+  return (Number.isInteger(v) ? v : +v.toFixed(digits)).toLocaleString("ru-RU");
+}
+function fmtDuration(min){
+  if (min == null || !isFinite(min)) return null;
+  if (min < 1) return "менее минуты";
+  const d = Math.floor(min/1440), h = Math.floor((min%1440)/60), m = Math.round(min%60);
+  if (d > 0) return `${d} дн ${h} ч`;
+  if (h > 0) return `${h} ч ${m} мин`;
+  return `${m} мин`;
+}
+
+const STATE = {
+  charging:    { label:"Зарядка",   icon:"⬆", color:"var(--good)" },
+  discharging: { label:"Разрядка",  icon:"⬇", color:"var(--series-1)" },
+  idle:        { label:"Ожидание",  icon:"◦", color:"var(--muted)" },
+  unknown:     { label:"—",         icon:"",  color:"var(--muted)" },
+};
+
+async function loadConfig() {
+  try {
+    const c = await (await fetch("/api/config")).json();
+    pollInterval = c.poll_interval || 10;
+    if (c.demo_mode) $("demoBadge").style.display = "";
+    const host = new URL(c.endpoint).host;
+    const dev = (c.devices || []).find(d => d.id === DEVICE_ID);
+    if (dev) $("devName").textContent = dev.name;
+    $("devsub").textContent = `${DEVICE_ID} · ${host}`;
+  } catch (e) {}
+}
+
+function setConn(online, err) {
+  $("connDot").className = "dot " + (online ? "online" : "offline");
+  $("connText").textContent = online ? "На связи" : "Нет связи";
+  $("errorBox").classList.toggle("show", !!err);
+  if (err) $("errorBox").textContent = "⚠ " + err;
+}
+
+function etaText(eta) {
+  if (!eta) return "";
+  if (eta.note === "at_or_below") return "Заряд уже ≤ 30%";
+  if (eta.note === "not_discharging") return "Не разряжается";
+  if (eta.note === "no_data") return "";
+  const d = fmtDuration(eta.minutes);
+  return d ? `До 30%: <b>≈ ${d}</b>` : "";
+}
+
+function render(data) {
+  const metrics = data.metrics || [];
+  const primary = data.primary || {};
+  if (data.name) $("devName").textContent = data.name;
+
+  const soc = primary.soc;
+  if (soc && typeof soc.value === "number") {
+    const p = Math.max(0, Math.min(100, soc.value));
+    $("socNum").innerHTML = `${Math.round(p)}<small>%</small>`;
+    const fill = $("battFill");
+    fill.style.width = p + "%";
+    fill.style.background = p < 20 ? "var(--critical)" : p < 50 ? "var(--warning)" : "var(--good)";
+  }
+
+  $("etaLine").innerHTML = etaText(data.eta_30);
+
+  const remain = metrics.find(m => /остаточн/i.test(m.label));
+  const total  = metrics.find(m => /полн|проектн/i.test(m.label));
+  if (remain || total) {
+    let s = "";
+    if (remain) s += `<b>${fmt(remain.value, remain.unit)}</b>`;
+    if (remain && total) s += " из ";
+    if (total) s += `<b>${fmt(total.value, total.unit)}</b>`;
+    $("capLine").innerHTML = s;
+  }
+
+  const st = STATE[data.state] || STATE.unknown;
+  const pill = $("statePill");
+  pill.textContent = `${st.icon} ${st.label}`.trim();
+  pill.style.color = st.color;
+  pill.style.borderColor = `color-mix(in srgb, ${st.color} 45%, transparent)`;
+
+  setTile("t_voltage", primary.voltage);
+  setTile("t_current", primary.current, true);
+  setTile("t_power", primary.power);
+  setTile("t_temp", metrics.find(m => m.role === "temperature"));
+
+  $("tableBody").innerHTML = metrics.map(m => `
+    <tr>
+      <td>${m.icon || ""} ${escapeHtml(m.label)}</td>
+      <td class="code">${escapeHtml(m.code)}</td>
+      <td class="val">${fmt(m.value, m.unit)}</td>
+    </tr>`).join("");
+
+  const src = primary.current || primary.power || primary.voltage;
+  if (src && typeof src.value === "number") {
+    chartMeta = { unit: src.unit, role: src.role,
+      title: src.role === "current" ? "Ток (заряд / разряд)"
+           : src.role === "power" ? "Мощность" : "Напряжение" };
+    history.push({ t: data.timestamp, value: src.value });
+    if (history.length > HISTORY_MAX) history.shift();
+    $("chartTitle").textContent = chartMeta.title;
+    $("chartNow").textContent = fmt(src.value, src.unit);
+    drawChart();
+  }
+
+  const dt = new Date(data.timestamp || Date.now());
+  $("footer").textContent = "обновлено " + dt.toLocaleTimeString("ru-RU");
+}
+
+function setTile(id, m, signed=false) {
+  const el = $(id);
+  if (!m || m.value === null || m.value === undefined) { el.textContent = "—"; el.className = "v"; return; }
+  el.innerHTML = fmt(m.value, m.unit).replace(/\s(\S+)$/, ' <small>$1</small>');
+  el.className = "v";
+  if (signed && typeof m.value === "number") {
+    if (m.value > 0.02) el.classList.add("pos");
+    else if (m.value < -0.02) el.classList.add("neg");
+  }
+}
+function escapeHtml(s){ return String(s ?? "").replace(/[&<>"]/g, c =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+/* --------------------- График (SVG, одна серия) --------------------- */
+const chart = $("chart");
+const W = 900, H = 200, PAD_L = 46, PAD_R = 12, PAD_T = 14, PAD_B = 22;
+chart.setAttribute("viewBox", `0 0 ${W} ${H}`);
+let chartPoints = [];
+
+function drawChart() {
+  if (history.length < 2) { chart.innerHTML = ""; return; }
+  const vals = history.map(p => p.value);
+  let min = Math.min(...vals), max = Math.max(...vals);
+  const signed = min < 0;
+  if (signed) { min = Math.min(min, 0); max = Math.max(max, 0); }
+  if (min === max) { min -= 1; max += 1; }
+  const range = max - min, padR = range * 0.12;
+  min -= padR; max += padR;
+
+  const n = history.length;
+  const x = i => PAD_L + (i/(n-1)) * (W - PAD_L - PAD_R);
+  const y = v => PAD_T + (1 - (v - min)/(max - min)) * (H - PAD_T - PAD_B);
+  chartPoints = history.map((p,i) => ({ x:x(i), y:y(p.value), v:p.value, t:p.t }));
+
+  const linePath = chartPoints.map((p,i) => (i?"L":"M")+p.x.toFixed(1)+" "+p.y.toFixed(1)).join(" ");
+  const baseY = signed ? y(0) : (H - PAD_B);
+  const areaPath = `${linePath} L ${chartPoints[n-1].x.toFixed(1)} ${baseY.toFixed(1)} L ${chartPoints[0].x.toFixed(1)} ${baseY.toFixed(1)} Z`;
+
+  const ticks = [max, (max+min)/2, min];
+  let grid = "";
+  ticks.forEach(tv => {
+    const yy = y(tv).toFixed(1);
+    grid += `<line x1="${PAD_L}" x2="${W-PAD_R}" y1="${yy}" y2="${yy}" stroke="var(--grid)" stroke-width="1"/>`;
+    grid += `<text x="${PAD_L-8}" y="${yy}" text-anchor="end" dominant-baseline="middle" fill="var(--muted)" font-size="11">${num(tv,1)}</text>`;
+  });
+  let zero = "";
+  if (signed) {
+    const zy = y(0).toFixed(1);
+    zero = `<line x1="${PAD_L}" x2="${W-PAD_R}" y1="${zy}" y2="${zy}" stroke="var(--baseline)" stroke-width="1.5"/>`;
+  }
+  const last = chartPoints[n-1];
+  chart.innerHTML = `
+    ${grid}${zero}
+    <path d="${areaPath}" fill="var(--series-fill)" stroke="none"/>
+    <path d="${linePath}" fill="none" stroke="var(--series-1)" stroke-width="2"
+          stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${last.x.toFixed(1)}" cy="${last.y.toFixed(1)}" r="4" fill="var(--series-1)"
+            stroke="var(--surface)" stroke-width="2"/>
+    <line id="crosshair" x1="0" x2="0" y1="${PAD_T}" y2="${H-PAD_B}" stroke="var(--muted)"
+          stroke-width="1" stroke-dasharray="3 3" style="opacity:0"/>
+    <circle id="hoverDot" r="4.5" fill="var(--series-1)" stroke="var(--surface)"
+            stroke-width="2" style="opacity:0"/>`;
+}
+
+const tooltip = $("tooltip");
+function onMove(evt) {
+  if (!chartPoints.length) return;
+  const rect = chart.getBoundingClientRect();
+  const px = (evt.clientX - rect.left) / rect.width * W;
+  let best = chartPoints[0], bd = Infinity;
+  for (const p of chartPoints) { const d = Math.abs(p.x - px); if (d < bd) { bd = d; best = p; } }
+  const ch = $("crosshair"), hd = $("hoverDot");
+  if (ch) { ch.setAttribute("x1", best.x); ch.setAttribute("x2", best.x); ch.style.opacity = 1; }
+  if (hd) { hd.setAttribute("cx", best.x); hd.setAttribute("cy", best.y); hd.style.opacity = 1; }
+  tooltip.style.opacity = 1;
+  tooltip.style.left = (evt.clientX + 12) + "px";
+  tooltip.style.top  = (evt.clientY - 8) + "px";
+  const time = new Date(best.t).toLocaleTimeString("ru-RU");
+  tooltip.innerHTML = `<b>${fmt(best.v, chartMeta.unit)}</b><br><span style="color:var(--muted)">${time}</span>`;
+}
+function onLeave() {
+  tooltip.style.opacity = 0;
+  const ch = $("crosshair"), hd = $("hoverDot");
+  if (ch) ch.style.opacity = 0;
+  if (hd) hd.style.opacity = 0;
+}
+chart.addEventListener("mousemove", onMove);
+chart.addEventListener("mouseleave", onLeave);
+chart.addEventListener("touchmove", e => { if (e.touches[0]) onMove(e.touches[0]); }, {passive:true});
+chart.addEventListener("touchend", onLeave);
+
+async function tick() {
+  try {
+    const resp = await fetch("/api/status?device_id=" + encodeURIComponent(DEVICE_ID));
+    const data = await resp.json();
+    if (!resp.ok || data.error) { setConn(false, data.error || `HTTP ${resp.status}`); }
+    else { setConn(true, null); render(data); }
+  } catch (e) {
+    setConn(false, "Сервер недоступен: " + e.message);
+  } finally {
+    setTimeout(tick, pollInterval * 1000);
+  }
+}
+
+(async function init(){ await loadConfig(); tick(); })();
+</script>
+</body>
+</html>

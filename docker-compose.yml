@@ -1,0 +1,29 @@
+services:
+  battery-monitor:
+    build: .
+    image: battery-monitor:latest
+    container_name: battery-monitor
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      # .env необязателен: без него работает демо-режим (реквизиты не заданы)
+      - path: .env
+        required: false
+    volumes:
+      # Постоянные настройки из админ-панели (settings.json) — сохраняются между рестартами
+      - ./data:/data
+      # Необязательный bootstrap-список устройств (config/devices.yml.example)
+      - ./config:/config:ro
+    environment:
+      # Всё можно настроить в веб-панели /admin. Значения ниже — только для
+      # первого запуска (bootstrap); после сохранения в панели приоритет у /data.
+      DATA_DIR: /data
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      TUYA_ACCESS_ID: ${TUYA_ACCESS_ID:-}
+      TUYA_ACCESS_KEY: ${TUYA_ACCESS_KEY:-}
+      TUYA_DEVICE_ID: ${TUYA_DEVICE_ID:-}
+      TUYA_API_ENDPOINT: ${TUYA_API_ENDPOINT:-https://openapi.tuyaeu.com}
+      DEVICES_CONFIG: ${DEVICES_CONFIG:-/config/devices.yml}
+      POLL_INTERVAL: ${POLL_INTERVAL:-10}
+      DEMO_MODE: ${DEMO_MODE:-false}

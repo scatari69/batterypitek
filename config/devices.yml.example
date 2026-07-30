@@ -1,0 +1,17 @@
+# Список устройств Tuya (все в одном аккаунте).
+# Скопируйте этот файл в config/devices.yml и отредактируйте.
+#
+#   id   — Device ID из Tuya IoT Platform (Cloud -> Devices -> All Devices).
+#   name — произвольное имя для отображения на дашборде.
+#
+# Реквизиты доступа (Access ID/Secret, регион) — общие, задаются в .env.
+
+devices:
+  - id: "bf1234567890abcdef01"
+    name: "Гараж — LiFePO4 100Ah"
+
+  - id: "bf0987654321fedcba98"
+    name: "Дом — резервный АКБ 200Ah"
+
+  - id: "bfaaaabbbbccccdddd12"
+    name: "Кемпер — 120Ah"

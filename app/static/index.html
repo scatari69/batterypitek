@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Battery Monitor · устройства</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page:#f9f9f7; --surface:#fcfcfb;
+    --text-primary:#0b0b0b; --text-secondary:#52514e; --muted:#898781;
+    --baseline:#c3c2b7; --border:rgba(11,11,11,0.10);
+    --series-1:#2a78d6;
+    --good:#0ca30c; --warning:#fab219; --critical:#d03b3b;
+    --radius:14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --page:#0d0d0d; --surface:#1a1a19;
+      --text-primary:#ffffff; --text-secondary:#c3c2b7; --muted:#898781;
+      --baseline:#383835; --border:rgba(255,255,255,0.10);
+      --series-1:#3987e5;
+      --good:#0ca30c; --warning:#fab219; --critical:#d03b3b;
+    }
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; background:var(--page); color:var(--text-primary);
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    line-height:1.4; -webkit-font-smoothing:antialiased;
+  }
+  .wrap { max-width:1080px; margin:0 auto; padding:24px 20px 48px; }
+
+  header { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:22px; }
+  header h1 { font-size:21px; margin:0; font-weight:650; }
+  .sub { color:var(--muted); font-size:13px; }
+  .badge { font-size:11px; font-weight:600; letter-spacing:.02em; padding:3px 9px;
+    border-radius:999px; border:1px solid var(--border); }
+  .badge.demo { color:var(--warning); border-color:color-mix(in srgb,var(--warning) 45%,transparent); }
+  .spacer { flex:1; }
+  .upd { font-size:13px; color:var(--muted); }
+  .gear { text-decoration:none; font-size:19px; line-height:1; color:var(--muted);
+    padding:4px; border-radius:8px; }
+  .gear:hover { color:var(--text-primary); background:var(--surface); }
+
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(264px,1fr)); gap:14px; }
+  .cardlink { text-decoration:none; color:inherit; }
+  .card {
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    padding:16px 17px; display:flex; flex-direction:column; gap:12px; height:100%;
+    transition:border-color .15s, transform .1s;
+  }
+  .cardlink:hover .card { border-color:color-mix(in srgb,var(--series-1) 55%,var(--border)); transform:translateY(-1px); }
+  .card.offline { opacity:.72; }
+
+  .chead { display:flex; align-items:center; gap:9px; }
+  .chead .name { font-size:15.5px; font-weight:640; line-height:1.25; }
+  .chead .dot { width:9px; height:9px; border-radius:50%; background:var(--muted); flex:0 0 auto; margin-left:auto; }
+  .dot.online { background:var(--good); box-shadow:0 0 0 3px color-mix(in srgb,var(--good) 20%,transparent); }
+  .dot.offline { background:var(--critical); box-shadow:0 0 0 3px color-mix(in srgb,var(--critical) 20%,transparent); }
+
+  .socrow { display:flex; align-items:baseline; gap:8px; }
+  .soc { font-size:40px; font-weight:680; line-height:1; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+  .soc small { font-size:17px; color:var(--muted); font-weight:600; }
+  .state-pill { margin-left:auto; font-size:11.5px; font-weight:600; padding:3px 9px; border-radius:999px;
+    border:1px solid var(--border); white-space:nowrap; }
+
+  .battery { position:relative; height:16px; border:2px solid var(--baseline); border-radius:5px;
+    padding:2px; display:flex; }
+  .battery::after { content:""; position:absolute; right:-6px; top:50%; transform:translateY(-50%);
+    width:4px; height:7px; background:var(--baseline); border-radius:0 2px 2px 0; }
+  .bfill { border-radius:2px; min-width:2px; transition:width .5s ease, background .4s ease; }
+
+  .eta { font-size:13.5px; color:var(--text-secondary); }
+  .eta b { color:var(--text-primary); font-weight:640; }
+  .eta.warn { color:var(--warning); }
+  .meta { display:flex; gap:14px; font-size:12.5px; color:var(--muted); font-variant-numeric:tabular-nums;
+    border-top:1px solid var(--border); padding-top:10px; margin-top:auto; }
+  .meta b { color:var(--text-secondary); font-weight:600; }
+  .errline { font-size:12.5px; color:var(--critical); }
+
+  .empty { text-align:center; color:var(--muted); padding:60px 20px; font-size:14px; }
+  .empty code { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:2px 6px; }
+  footer { margin-top:26px; color:var(--muted); font-size:12px; text-align:center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>🔋 Battery Monitor</h1>
+      <div class="sub" id="sub">загрузка…</div>
+    </div>
+    <span class="badge demo" id="demoBadge" style="display:none">ДЕМО-РЕЖИМ</span>
+    <div class="spacer"></div>
+    <div class="upd" id="upd"></div>
+    <a class="gear" href="/admin" title="Настройки">⚙</a>
+  </header>
+
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" style="display:none"></div>
+
+  <footer id="footer"></footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let pollInterval = 15;
+
+function fmt(v, unit) {
+  if (typeof v !== "number") return "—";
+  const abs = Math.abs(v);
+  let s = Number.isInteger(v) ? String(v) : abs >= 100 ? v.toFixed(0) : abs >= 10 ? v.toFixed(1) : v.toFixed(2);
+  return unit ? `${s} ${unit}` : s;
+}
+function fmtDuration(min){
+  if (min == null || !isFinite(min)) return null;
+  if (min < 1) return "менее минуты";
+  const d = Math.floor(min/1440), h = Math.floor((min%1440)/60), m = Math.round(min%60);
+  if (d > 0) return `${d} дн ${h} ч`;
+  if (h > 0) return `${h} ч ${m} мин`;
+  return `${m} мин`;
+}
+function escapeHtml(s){ return String(s ?? "").replace(/[&<>"]/g, c =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+const STATE = {
+  charging:    { label:"⬆ Зарядка",  color:"var(--good)" },
+  discharging: { label:"⬇ Разрядка", color:"var(--series-1)" },
+  idle:        { label:"◦ Ожидание", color:"var(--muted)" },
+  unknown:     { label:"—",          color:"var(--muted)" },
+};
+
+function socColor(p){ return p < 20 ? "var(--critical)" : p < 50 ? "var(--warning)" : "var(--good)"; }
+
+function etaHtml(dev){
+  if (dev.state === "charging") return `<span class="eta">заряжается ⬆</span>`;
+  const note = dev.eta_note;
+  if (note === "at_or_below") return `<span class="eta warn">заряд уже ≤ 30%</span>`;
+  if (note === "ok") {
+    const d = fmtDuration(dev.eta_minutes);
+    return d ? `<span class="eta">⏳ до 30%: <b>≈ ${d}</b></span>` : `<span class="eta">—</span>`;
+  }
+  if (note === "not_discharging") return `<span class="eta">разряд не идёт</span>`;
+  if (note === "no_data") return `<span class="eta">нет данных о ёмкости</span>`;
+  return `<span class="eta">—</span>`;
+}
+
+function card(dev){
+  const st = STATE[dev.state] || STATE.unknown;
+  const soc = typeof dev.soc === "number" ? Math.max(0, Math.min(100, dev.soc)) : null;
+
+  if (!dev.online) {
+    return `<a class="cardlink" href="/device/${encodeURIComponent(dev.id)}">
+      <div class="card offline">
+        <div class="chead"><span class="name">${escapeHtml(dev.name)}</span><span class="dot offline"></span></div>
+        <div class="errline">⚠ ${escapeHtml(dev.error || "нет связи")}</div>
+        <div class="meta" style="border:none"><span>${escapeHtml(dev.id)}</span></div>
+      </div></a>`;
+  }
+
+  const socStr = soc == null ? "—" : Math.round(soc);
+  const barW = soc == null ? 0 : soc;
+  const barC = soc == null ? "var(--muted)" : socColor(soc);
+
+  return `<a class="cardlink" href="/device/${encodeURIComponent(dev.id)}">
+    <div class="card">
+      <div class="chead">
+        <span class="name">${escapeHtml(dev.name)}</span>
+        <span class="dot online"></span>
+      </div>
+      <div class="socrow">
+        <span class="soc">${socStr}<small>%</small></span>
+        <span class="state-pill" style="color:${st.color};border-color:color-mix(in srgb,${st.color} 45%,transparent)">${st.label}</span>
+      </div>
+      <div class="battery"><div class="bfill" style="width:${barW}%;background:${barC}"></div></div>
+      ${etaHtml(dev)}
+      <div class="meta">
+        <span>⚡ <b>${fmt(dev.voltage, dev.voltage_unit || "V")}</b></span>
+        <span>🔀 <b>${fmt(dev.current, dev.current_unit || "A")}</b></span>
+      </div>
+    </div></a>`;
+}
+
+async function loadConfig(){
+  try {
+    const c = await (await fetch("/api/config")).json();
+    pollInterval = Math.max(10, c.poll_interval || 15);
+    if (c.demo_mode) $("demoBadge").style.display = "";
+    const n = (c.devices || []).length;
+    $("sub").textContent = `${n} ${plural(n, "устройство","устройства","устройств")} · ${new URL(c.endpoint).host}`;
+  } catch(e){}
+}
+function plural(n, one, few, many){
+  const m10 = n % 10, m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return one;
+  if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return few;
+  return many;
+}
+
+async function tick(){
+  try {
+    const resp = await fetch("/api/devices");
+    const data = await resp.json();
+    const list = data.devices || [];
+    if (!list.length){
+      $("grid").style.display = "none";
+      $("empty").style.display = "";
+      $("empty").innerHTML = "Устройства не заданы. Добавьте их в <code>config/devices.yml</code> или включите демо-режим (<code>DEMO_MODE=true</code>).";
+    } else {
+      $("empty").style.display = "none";
+      $("grid").style.display = "";
+      $("grid").innerHTML = list.map(card).join("");
+    }
+    $("upd").textContent = "обновлено " + new Date(data.timestamp || Date.now()).toLocaleTimeString("ru-RU");
+    $("footer").textContent = data.demo ? "демо-данные" : "";
+  } catch(e){
+    $("upd").textContent = "ошибка обновления";
+  } finally {
+    setTimeout(tick, pollInterval * 1000);
+  }
+}
+
+(async function init(){ await loadConfig(); tick(); })();
+</script>
+</body>
+</html>
