@@ -24,4 +24,10 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
   CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/healthz').status==200 else 1)"
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# --forwarded-allow-ips: доверять X-Forwarded-* от прокси. По умолчанию uvicorn
+# доверяет только 127.0.0.1, а Caddy из соседнего контейнера приходит с адреса
+# docker-сети — без этого редиректы уезжают на http:// при HTTPS снаружи.
+# Флаг в CMD имеет приоритет над переменной FORWARDED_ALLOW_IPS; чтобы сузить
+# список доверенных адресов, переопределите `command:` в docker-compose.yml.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", \
+     "--proxy-headers", "--forwarded-allow-ips", "*"]
