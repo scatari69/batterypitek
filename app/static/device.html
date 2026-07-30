@@ -39,10 +39,8 @@
   header { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:22px; }
   header h1 { font-size:20px; margin:0; font-weight:650; }
   .sub { color:var(--muted); font-size:13px; }
-  .badge {
-    font-size:11px; font-weight:600; letter-spacing:.02em; padding:3px 9px;
-    border-radius:999px; border:1px solid var(--border);
-  }
+  .badge { font-size:11px; font-weight:600; letter-spacing:.02em; padding:3px 9px;
+    border-radius:999px; border:1px solid var(--border); }
   .badge.demo { color:var(--warning); border-color:color-mix(in srgb,var(--warning) 45%,transparent); }
   .spacer { flex:1; }
   .conn { display:flex; align-items:center; gap:7px; font-size:13px; color:var(--text-secondary); }
@@ -50,61 +48,51 @@
   .dot.online { background:var(--good); box-shadow:0 0 0 3px color-mix(in srgb,var(--good) 22%,transparent); }
   .dot.offline { background:var(--critical); box-shadow:0 0 0 3px color-mix(in srgb,var(--critical) 22%,transparent); }
 
-  .card {
-    background:var(--surface); border:1px solid var(--border);
-    border-radius:var(--radius); padding:18px;
-  }
-  .top { display:grid; grid-template-columns:minmax(240px,1fr) 1.4fr; gap:16px; margin-bottom:16px; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px; }
+  .card.sec { padding:6px 4px; }
+  .top { display:grid; grid-template-columns:minmax(240px,1fr) 1.5fr; gap:16px; margin-bottom:16px; }
   @media (max-width:720px){ .top { grid-template-columns:1fr; } }
 
-  .battery-card { display:flex; flex-direction:column; gap:14px; }
+  .battery-card { display:flex; flex-direction:column; gap:13px; }
   .soc-num { font-size:52px; font-weight:680; line-height:1; letter-spacing:-.02em; }
   .soc-num small { font-size:22px; color:var(--muted); font-weight:600; margin-left:4px; }
-  .state-line { display:flex; align-items:center; gap:8px; font-size:14px; color:var(--text-secondary); }
+  .state-line { display:flex; align-items:center; gap:8px; }
   .state-pill { font-size:12px; font-weight:600; padding:3px 10px; border-radius:999px;
     border:1px solid var(--border); display:inline-flex; align-items:center; gap:6px; }
-  .battery {
-    position:relative; height:34px; border:2px solid var(--baseline);
-    border-radius:8px; padding:3px; display:flex; align-items:stretch;
-  }
-  .battery::after {
-    content:""; position:absolute; right:-7px; top:50%; transform:translateY(-50%);
-    width:5px; height:14px; background:var(--baseline); border-radius:0 3px 3px 0;
-  }
+  .battery { position:relative; height:34px; border:2px solid var(--baseline);
+    border-radius:8px; padding:3px; display:flex; align-items:stretch; }
+  .battery::after { content:""; position:absolute; right:-7px; top:50%; transform:translateY(-50%);
+    width:5px; height:14px; background:var(--baseline); border-radius:0 3px 3px 0; }
   .battery-fill { border-radius:4px; transition:width .5s ease, background .4s ease; min-width:2px; }
   .cap-line { font-size:13px; color:var(--muted); }
   .cap-line b { color:var(--text-secondary); font-weight:600; }
   .eta-line { font-size:13.5px; color:var(--text-secondary); }
   .eta-line b { color:var(--text-primary); font-weight:640; }
+  .eta-line.warn b, .eta-line.warn { color:var(--warning); }
 
-  .tiles { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
-  .tile { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
-  .tile .k { font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px; }
-  .tile .v { font-size:26px; font-weight:640; margin-top:6px; letter-spacing:-.01em;
-    font-variant-numeric:tabular-nums; }
-  .tile .v small { font-size:15px; color:var(--muted); font-weight:600; margin-left:3px; }
+  .tiles { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px; align-content:start; }
+  .tile { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:13px 15px; }
+  .tile .k { font-size:12px; color:var(--muted); display:flex; align-items:center; gap:5px; }
+  .tile .v { font-size:23px; font-weight:640; margin-top:5px; letter-spacing:-.01em; font-variant-numeric:tabular-nums; }
+  .tile .v small { font-size:14px; color:var(--muted); font-weight:600; margin-left:3px; }
   .tile .v.pos { color:var(--good); }
   .tile .v.neg { color:var(--series-1); }
 
   .chart-card { margin-bottom:16px; }
   .chart-head { display:flex; align-items:baseline; gap:10px; margin-bottom:6px; }
   .chart-head h2 { font-size:15px; margin:0; font-weight:620; }
-  .chart-head .now { margin-left:auto; font-size:13px; color:var(--text-secondary);
-    font-variant-numeric:tabular-nums; }
+  .chart-head .now { margin-left:auto; font-size:13px; color:var(--text-secondary); font-variant-numeric:tabular-nums; }
   .chart-scroll { overflow-x:auto; }
   svg.chart { width:100%; height:200px; display:block; touch-action:none; }
-  .tooltip {
-    position:fixed; pointer-events:none; z-index:10; background:var(--surface);
+  .tooltip { position:fixed; pointer-events:none; z-index:10; background:var(--surface);
     border:1px solid var(--border); border-radius:8px; padding:6px 9px; font-size:12px;
-    box-shadow:0 4px 16px rgba(0,0,0,.18); opacity:0; transition:opacity .1s; white-space:nowrap;
-  }
+    box-shadow:0 4px 16px rgba(0,0,0,.18); opacity:0; transition:opacity .1s; white-space:nowrap; }
   .tooltip b { font-variant-numeric:tabular-nums; }
 
   h2.section { font-size:14px; color:var(--text-secondary); margin:22px 0 10px; font-weight:600; }
   table { width:100%; border-collapse:collapse; font-size:13.5px; }
-  th, td { text-align:left; padding:9px 10px; border-bottom:1px solid var(--border); }
-  th { color:var(--muted); font-weight:600; font-size:12px; }
-  td.val { text-align:right; font-variant-numeric:tabular-nums; font-weight:600; }
+  td { text-align:left; padding:9px 10px; border-bottom:1px solid var(--border); }
+  td.val { text-align:right; font-variant-numeric:tabular-nums; font-weight:600; white-space:nowrap; }
   td.code { color:var(--muted); font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; }
   tr:last-child td { border-bottom:none; }
 
@@ -125,10 +113,7 @@
     </div>
     <span class="badge demo" id="demoBadge" style="display:none">ДЕМО-РЕЖИМ</span>
     <div class="spacer"></div>
-    <div class="conn">
-      <span class="dot" id="connDot"></span>
-      <span id="connText">Подключение…</span>
-    </div>
+    <div class="conn"><span class="dot" id="connDot"></span><span id="connText">Подключение…</span></div>
   </header>
 
   <div class="error" id="errorBox"></div>
@@ -141,13 +126,7 @@
       <div class="eta-line" id="etaLine"></div>
       <div class="cap-line" id="capLine"></div>
     </div>
-
-    <div class="tiles" id="tiles">
-      <div class="tile"><div class="k">⚡ Напряжение</div><div class="v" id="t_voltage">—</div></div>
-      <div class="tile"><div class="k">🔀 Ток</div><div class="v" id="t_current">—</div></div>
-      <div class="tile"><div class="k">💡 Мощность</div><div class="v" id="t_power">—</div></div>
-      <div class="tile"><div class="k">🌡️ Температура</div><div class="v" id="t_temp">—</div></div>
-    </div>
+    <div class="tiles" id="tiles"></div>
   </div>
 
   <div class="card chart-card">
@@ -155,18 +134,10 @@
       <h2 id="chartTitle">История</h2>
       <span class="now" id="chartNow"></span>
     </div>
-    <div class="chart-scroll">
-      <svg class="chart" id="chart" preserveAspectRatio="none"></svg>
-    </div>
+    <div class="chart-scroll"><svg class="chart" id="chart" preserveAspectRatio="none"></svg></div>
   </div>
 
-  <h2 class="section">Все точки данных</h2>
-  <div class="card" style="padding:6px 4px">
-    <table>
-      <thead><tr><th>Параметр</th><th>Код (DP)</th><th style="text-align:right">Значение</th></tr></thead>
-      <tbody id="tableBody"></tbody>
-    </table>
-  </div>
+  <div id="groups"></div>
 
   <footer id="footer">обновлено —</footer>
 </div>
@@ -180,6 +151,16 @@ let history = [];
 let pollInterval = 10;
 let chartMeta = { unit:"", role:"" };
 
+const GROUP_ORDER = ["counter","protection","config","control","other"];
+const GROUP_TITLES = {
+  counter:"Счётчики и накопление", protection:"Защиты и пороги",
+  config:"Настройки устройства", control:"Управление и состояние", other:"Прочее",
+};
+const TILE_PRIORITY = ["cur_voltage","cur_current","cur_power","ntc_temp","cpu_temp"];
+const TILE_EXCLUDE = new Set(["battery_percentage","cap","resistance"]);
+const VALUE_LABELS = { actual_cap:"фактическая", rated_cap:"номинальная",
+  on:"вкл", off:"выкл", english:"English", front:"передняя", back:"задняя" };
+
 function fmt(v, unit) {
   if (v === null || v === undefined) return "—";
   if (typeof v === "boolean") return v ? "да" : "нет";
@@ -191,7 +172,7 @@ function fmt(v, unit) {
     else s = v.toFixed(2);
     return unit ? `${s} ${unit}` : s;
   }
-  return String(v);
+  return VALUE_LABELS[v] || String(v);
 }
 function num(v, digits=2){
   if (typeof v !== "number") return "—";
@@ -205,6 +186,8 @@ function fmtDuration(min){
   if (h > 0) return `${h} ч ${m} мин`;
   return `${m} мин`;
 }
+function escapeHtml(s){ return String(s ?? "").replace(/[&<>"]/g, c =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 
 const STATE = {
   charging:    { label:"Зарядка",   icon:"⬆", color:"var(--good)" },
@@ -218,10 +201,9 @@ async function loadConfig() {
     const c = await (await fetch("/api/config")).json();
     pollInterval = c.poll_interval || 10;
     if (c.demo_mode) $("demoBadge").style.display = "";
-    const host = new URL(c.endpoint).host;
     const dev = (c.devices || []).find(d => d.id === DEVICE_ID);
     if (dev) $("devName").textContent = dev.name;
-    $("devsub").textContent = `${DEVICE_ID} · ${host}`;
+    $("devsub").textContent = `${DEVICE_ID} · ${new URL(c.endpoint).host}`;
   } catch (e) {}
 }
 
@@ -234,11 +216,21 @@ function setConn(online, err) {
 
 function etaText(eta) {
   if (!eta) return "";
-  if (eta.note === "at_or_below") return "Заряд уже ≤ 30%";
-  if (eta.note === "not_discharging") return "Не разряжается";
+  if (eta.note === "at_or_below") return `<span class="warn">Заряд уже ≤ 30%</span>`;
+  if (eta.note === "not_discharging") return "Разряд не идёт";
   if (eta.note === "no_data") return "";
   const d = fmtDuration(eta.minutes);
   return d ? `До 30%: <b>≈ ${d}</b>` : "";
+}
+
+function tileHtml(m) {
+  let cls = "v";
+  if ((m.role === "current" || m.role === "power") && typeof m.value === "number") {
+    if (m.value > 0.02) cls += " pos"; else if (m.value < -0.02) cls += " neg";
+  }
+  const val = fmt(m.value, m.unit).replace(/\s(\S+)$/, ' <small>$1</small>');
+  return `<div class="tile"><div class="k">${m.icon || ""} ${escapeHtml(m.label)}</div>
+          <div class="${cls}">${val}</div></div>`;
 }
 
 function render(data) {
@@ -246,6 +238,7 @@ function render(data) {
   const primary = data.primary || {};
   if (data.name) $("devName").textContent = data.name;
 
+  // --- Батарея ---
   const soc = primary.soc;
   if (soc && typeof soc.value === "number") {
     const p = Math.max(0, Math.min(100, soc.value));
@@ -255,36 +248,44 @@ function render(data) {
     fill.style.background = p < 20 ? "var(--critical)" : p < 50 ? "var(--warning)" : "var(--good)";
   }
 
-  $("etaLine").innerHTML = etaText(data.eta_30);
-
-  const remain = metrics.find(m => /остаточн/i.test(m.label));
-  const total  = metrics.find(m => /полн|проектн/i.test(m.label));
-  if (remain || total) {
-    let s = "";
-    if (remain) s += `<b>${fmt(remain.value, remain.unit)}</b>`;
-    if (remain && total) s += " из ";
-    if (total) s += `<b>${fmt(total.value, total.unit)}</b>`;
-    $("capLine").innerHTML = s;
-  }
-
   const st = STATE[data.state] || STATE.unknown;
   const pill = $("statePill");
   pill.textContent = `${st.icon} ${st.label}`.trim();
   pill.style.color = st.color;
   pill.style.borderColor = `color-mix(in srgb, ${st.color} 45%, transparent)`;
 
-  setTile("t_voltage", primary.voltage);
-  setTile("t_current", primary.current, true);
-  setTile("t_power", primary.power);
-  setTile("t_temp", metrics.find(m => m.role === "temperature"));
+  const eta = etaText(data.eta_30);
+  $("etaLine").className = "eta-line" + ((data.eta_30 && data.eta_30.note === "at_or_below") ? " warn" : "");
+  $("etaLine").innerHTML = eta;
 
-  $("tableBody").innerHTML = metrics.map(m => `
-    <tr>
-      <td>${m.icon || ""} ${escapeHtml(m.label)}</td>
-      <td class="code">${escapeHtml(m.code)}</td>
-      <td class="val">${fmt(m.value, m.unit)}</td>
-    </tr>`).join("");
+  // Ёмкость + сопротивление
+  const cap = metrics.find(m => m.role === "capacity" && m.cap_kind === "remaining")
+           || metrics.find(m => m.code === "cap");
+  const res = metrics.find(m => m.code === "resistance");
+  let capHtml = "";
+  if (cap) capHtml += `Ёмкость: <b>${fmt(cap.value, cap.unit)}</b>`;
+  if (res) capHtml += (capHtml ? " · " : "") + `R: <b>${fmt(res.value, res.unit)}</b>`;
+  $("capLine").innerHTML = capHtml;
 
+  // --- Живые плитки ---
+  const tiles = metrics.filter(m => m.group === "live" && !TILE_EXCLUDE.has(m.code));
+  tiles.sort((a,b) => (TILE_PRIORITY.indexOf(a.code)+1 || 99) - (TILE_PRIORITY.indexOf(b.code)+1 || 99));
+  $("tiles").innerHTML = tiles.map(tileHtml).join("");
+
+  // --- Группы ---
+  let gh = "";
+  for (const g of GROUP_ORDER) {
+    const items = metrics.filter(m => m.group === g);
+    if (!items.length) continue;
+    gh += `<h2 class="section">${GROUP_TITLES[g]}</h2><div class="card sec"><table><tbody>` +
+      items.map(m => `<tr><td>${m.icon || ""} ${escapeHtml(m.label)}</td>
+        <td class="code">${escapeHtml(m.code)}</td>
+        <td class="val">${fmt(m.value, m.unit)}</td></tr>`).join("") +
+      `</tbody></table></div>`;
+  }
+  $("groups").innerHTML = gh;
+
+  // --- График: ток / мощность / напряжение ---
   const src = primary.current || primary.power || primary.voltage;
   if (src && typeof src.value === "number") {
     chartMeta = { unit: src.unit, role: src.role,
@@ -300,19 +301,6 @@ function render(data) {
   const dt = new Date(data.timestamp || Date.now());
   $("footer").textContent = "обновлено " + dt.toLocaleTimeString("ru-RU");
 }
-
-function setTile(id, m, signed=false) {
-  const el = $(id);
-  if (!m || m.value === null || m.value === undefined) { el.textContent = "—"; el.className = "v"; return; }
-  el.innerHTML = fmt(m.value, m.unit).replace(/\s(\S+)$/, ' <small>$1</small>');
-  el.className = "v";
-  if (signed && typeof m.value === "number") {
-    if (m.value > 0.02) el.classList.add("pos");
-    else if (m.value < -0.02) el.classList.add("neg");
-  }
-}
-function escapeHtml(s){ return String(s ?? "").replace(/[&<>"]/g, c =>
-  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 
 /* --------------------- График (SVG, одна серия) --------------------- */
 const chart = $("chart");
@@ -355,14 +343,10 @@ function drawChart() {
   chart.innerHTML = `
     ${grid}${zero}
     <path d="${areaPath}" fill="var(--series-fill)" stroke="none"/>
-    <path d="${linePath}" fill="none" stroke="var(--series-1)" stroke-width="2"
-          stroke-linejoin="round" stroke-linecap="round"/>
-    <circle cx="${last.x.toFixed(1)}" cy="${last.y.toFixed(1)}" r="4" fill="var(--series-1)"
-            stroke="var(--surface)" stroke-width="2"/>
-    <line id="crosshair" x1="0" x2="0" y1="${PAD_T}" y2="${H-PAD_B}" stroke="var(--muted)"
-          stroke-width="1" stroke-dasharray="3 3" style="opacity:0"/>
-    <circle id="hoverDot" r="4.5" fill="var(--series-1)" stroke="var(--surface)"
-            stroke-width="2" style="opacity:0"/>`;
+    <path d="${linePath}" fill="none" stroke="var(--series-1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${last.x.toFixed(1)}" cy="${last.y.toFixed(1)}" r="4" fill="var(--series-1)" stroke="var(--surface)" stroke-width="2"/>
+    <line id="crosshair" x1="0" x2="0" y1="${PAD_T}" y2="${H-PAD_B}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3" style="opacity:0"/>
+    <circle id="hoverDot" r="4.5" fill="var(--series-1)" stroke="var(--surface)" stroke-width="2" style="opacity:0"/>`;
 }
 
 const tooltip = $("tooltip");

@@ -22,25 +22,88 @@ ROLE_LABELS = {
     "other": ("", "•"),
 }
 
-# Точечные подписи для часто встречающихся кодов DT20W / кулоновских счётчиков.
-CODE_LABELS = {
-    "cur_voltage": "Напряжение",
-    "cur_current": "Ток",
-    "cur_power": "Мощность",
-    "battery_percentage": "Заряд батареи",
-    "residual_electricity": "Остаточный заряд",
-    "electric_quantity": "Остаточная ёмкость",
-    "remain_capacity": "Остаточная ёмкость",
-    "residual_capacity": "Остаточная ёмкость",
-    "total_capacity": "Полная ёмкость",
-    "design_capacity": "Проектная ёмкость",
-    "temp_current": "Температура",
-    "cumulative_charge": "Накоплено заряда",
-    "cumulative_discharge": "Накоплено разряда",
-    "remaining_time": "Оставшееся время",
-    "charge_state": "Режим",
-    "work_state": "Режим работы",
+# Реестр известных кодов DP: code -> (подпись, группа, иконка).
+# Группы: live — живые показания; counter — счётчики/накопление;
+# protection — пороги защит; config — настройки; control — управление/состояние.
+CODE_META = {
+    # --- живые показания ---
+    "cur_voltage": ("Напряжение", "live", "⚡"),
+    "cur_current": ("Ток", "live", "🔀"),
+    "cur_power": ("Мощность", "live", "💡"),
+    "battery_percentage": ("Заряд батареи", "live", "🔋"),
+    "residual_electricity": ("Остаточный заряд", "live", "🔋"),
+    "electric_quantity": ("Остаточная ёмкость", "live", "🔋"),
+    "cap": ("Остаточная ёмкость", "live", "🔋"),
+    "remain_capacity": ("Остаточная ёмкость", "live", "🔋"),
+    "residual_capacity": ("Остаточная ёмкость", "live", "🔋"),
+    "ntc_temp": ("Температура (датчик)", "live", "🌡️"),
+    "cpu_temp": ("Температура платы", "live", "🌡️"),
+    "temp_current": ("Температура", "live", "🌡️"),
+    "resistance": ("Внутр. сопротивление", "live", "🧭"),
+    # --- счётчики / накопление ---
+    "charging_capacity": ("Заряжено", "counter", "🔼"),
+    "discharge_capacity": ("Разряжено", "counter", "🔽"),
+    "accumulated_capacity": ("Накоплено (ёмкость)", "counter", "🧮"),
+    "cumulative_charge": ("Накоплено заряда", "counter", "🔼"),
+    "cumulative_discharge": ("Накоплено разряда", "counter", "🔽"),
+    "accumulated_electricity": ("Накоплено энергии", "counter", "📊"),
+    "ele": ("Энергия", "counter", "📊"),
+    # --- пороги защит ---
+    "ovp": ("Защита: перенапряжение", "protection", "🛡️"),
+    "lvp": ("Защита: низкое напряжение", "protection", "🛡️"),
+    "otp": ("Защита: перегрев", "protection", "🛡️"),
+    "opp": ("Защита: превышение мощности", "protection", "🛡️"),
+    "discharge_current": ("Защита: ток разряда", "protection", "🛡️"),
+    "discharge_power": ("Защита: мощность разряда", "protection", "🛡️"),
+    "mini_current": ("Мин. ток (отсечка)", "protection", "🛡️"),
+    # --- настройки ---
+    "percent_100_bat_voltage": ("Напряжение 100% заряда", "config", "⚙️"),
+    "percent_0_bat_voltage": ("Напряжение 0% заряда", "config", "⚙️"),
+    "capacity_mode": ("Режим расчёта ёмкости", "config", "⚙️"),
+    "diverter_size": ("Шунт (номинал)", "config", "⚙️"),
+    "reporting_interval": ("Интервал отчётов", "config", "⚙️"),
+    "standby_value": ("Порог ожидания", "config", "⚙️"),
+    "work_value": ("Рабочий порог", "config", "⚙️"),
+    "standby_time": ("Время до ожидания", "config", "⚙️"),
+    "language": ("Язык", "config", "⚙️"),
+    "menu": ("Экран / меню", "config", "⚙️"),
+    # --- управление / состояние ---
+    "relay_switch": ("Реле (нагрузка)", "control", "🔌"),
+    "warning": ("Предупреждение", "control", "⚠️"),
+    "current_zero": ("Обнулить ток", "control", "🎚️"),
+    "real_time_swith_1s_60s": ("Отчёты в реальном времени", "control", "🎚️"),
+    "data_reset": ("Сброс данных", "control", "🎚️"),
+    "wifi_reset": ("Сброс Wi-Fi", "control", "🎚️"),
+    "factor_reset": ("Заводской сброс", "control", "🎚️"),
+    "charge_state": ("Режим", "live", "ℹ️"),
+    "work_state": ("Режим работы", "live", "ℹ️"),
 }
+
+# Порядок и заголовки групп (для фронтенда).
+GROUP_ORDER = ["counter", "protection", "config", "control", "other"]
+GROUP_TITLES = {
+    "counter": "Счётчики и накопление",
+    "protection": "Защиты и пороги",
+    "config": "Настройки устройства",
+    "control": "Управление и состояние",
+    "other": "Прочее",
+}
+
+# Предпочтительные коды для «крупных плиток» (чтобы порог ovp не попал в напряжение).
+PRIMARY_CODES = {
+    "voltage": ["cur_voltage"],
+    "current": ["cur_current"],
+    "power": ["cur_power"],
+    "soc": ["battery_percentage", "residual_electricity", "electric_quantity"],
+}
+
+
+def _default_group(role: str) -> str:
+    if role in ("voltage", "current", "power", "soc", "temperature"):
+        return "live"
+    if role in ("capacity", "energy"):
+        return "counter"
+    return "other"
 
 
 def _parse_spec(specifications):
@@ -66,6 +129,34 @@ def _parse_spec(specifications):
             "range": values.get("range"),
         }
     return spec_map
+
+
+def thing_model_to_spec(model):
+    """Конвертирует «Thing»-модель (v2.0) в формат specifications (как у /v1.0),
+    чтобы normalize() мог взять из неё единицы и масштаб кастомных DP."""
+    status = []
+    if not model:
+        return {"status": status}
+    for service in model.get("services", []) or []:
+        for prop in service.get("properties", []) or []:
+            ts = prop.get("typeSpec") or {}
+            values = {k: ts[k] for k in ("unit", "scale", "min", "max", "step", "range") if k in ts}
+            status.append({
+                "code": prop.get("code"),
+                "type": ts.get("type"),
+                "values": json.dumps(values, ensure_ascii=False),
+            })
+    return {"status": status}
+
+
+def merge_status(base_status, thing_properties):
+    """Объединяет точки данных из /v1.0 status и Thing-свойств (последние дополняют)."""
+    by_code = {}
+    for item in base_status or []:
+        by_code[item.get("code")] = item.get("value")
+    for prop in thing_properties or []:
+        by_code[prop.get("code")] = prop.get("value")
+    return [{"code": code, "value": value} for code, value in by_code.items()]
 
 
 def detect_role(code: str, unit: str) -> str:
@@ -113,11 +204,19 @@ def detect_role(code: str, unit: str) -> str:
 
 
 def _cap_kind(code: str):
-    """Для метрик-ёмкостей: это «остаточная» или «полная» ёмкость?"""
+    """Для метрик-ёмкостей: это «остаточная» или «полная» ёмкость (для расчёта ETA)?
+
+    Счётчики (charging/discharge/accumulated) — не остаток и не полная, вернём None,
+    чтобы они не участвовали в оценке времени до разряда.
+    """
     c = (code or "").lower()
+    if any(k in c for k in ("charging", "discharge", "accumulat", "cumulative")):
+        return None
+    if c in ("cap", "electric_quantity"):
+        return "remaining"
     if any(k in c for k in ("total", "design", "full", "rated")):
         return "total"
-    if any(k in c for k in ("remain", "residual", "surplus")) or c == "electric_quantity":
+    if any(k in c for k in ("remain", "residual", "surplus")):
         return "remaining"
     return None
 
@@ -144,8 +243,13 @@ def normalize(status, specifications):
         role = detect_role(code, unit)
 
         value = _scaled(raw, scale)
-        role_label, icon = ROLE_LABELS.get(role, ROLE_LABELS["other"])
-        label = CODE_LABELS.get(code) or role_label or code
+        meta = CODE_META.get(code)
+        if meta:
+            label, group, icon = meta
+        else:
+            role_label, icon = ROLE_LABELS.get(role, ROLE_LABELS["other"])
+            label = role_label or code
+            group = _default_group(role)
 
         metrics.append(
             {
@@ -153,6 +257,7 @@ def normalize(status, specifications):
                 "label": label,
                 "icon": icon,
                 "role": role,
+                "group": group,
                 "value": value,
                 "raw": raw,
                 "unit": unit,
@@ -163,15 +268,28 @@ def normalize(status, specifications):
             }
         )
 
-    # Ключевые метрики для «крупных плиток».
+    primary = _pick_primary(metrics)
+    return {"metrics": metrics, "primary": primary,
+            "state": _infer_state(metrics, primary)}
+
+
+def _pick_primary(metrics):
+    """Ключевые метрики для крупных плиток: предпочитаем известные «живые» коды,
+    чтобы пороги защит (ovp/opp/…) не попадали в основные показатели."""
     primary = {}
     for role in ("voltage", "current", "power", "soc"):
-        for m in metrics:
-            if m["role"] == role:
-                primary[role] = m
+        chosen = None
+        for code in PRIMARY_CODES.get(role, []):
+            chosen = next((m for m in metrics if m["code"] == code), None)
+            if chosen:
                 break
-
-    return {"metrics": metrics, "primary": primary, "state": _infer_state(metrics, primary)}
+        if not chosen:
+            chosen = next((m for m in metrics if m["role"] == role and m.get("group") == "live"), None)
+        if not chosen:
+            chosen = next((m for m in metrics if m["role"] == role), None)
+        if chosen:
+            primary[role] = chosen
+    return primary
 
 
 def _infer_state(metrics, primary):

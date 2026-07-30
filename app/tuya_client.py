@@ -9,6 +9,7 @@ requests, чтобы поведение было прозрачным и не л
 
 import hashlib
 import hmac
+import json
 import threading
 import time
 
@@ -121,6 +122,23 @@ class TuyaClient:
     def get_device(self, device_id: str):
         """Мета-информация об устройстве (имя, онлайн/офлайн, категория)."""
         return self._request("GET", f"/v1.0/devices/{device_id}")
+
+    def get_thing_properties(self, device_id: str):
+        """Свойства по «Thing»-модели (v2.0). Часто полнее, чем /v1.0 status:
+        включает кастомные DP (заряд, ёмкость), которых нет в стандартном статусе."""
+        result = self._request("GET", f"/v2.0/cloud/thing/{device_id}/shadow/properties") or {}
+        return result.get("properties", []) or []
+
+    def get_thing_model(self, device_id: str):
+        """Полная модель устройства (v2.0): единицы измерения и масштаб всех свойств."""
+        result = self._request("GET", f"/v2.0/cloud/thing/{device_id}/model") or {}
+        raw = result.get("model")
+        if isinstance(raw, str):
+            try:
+                return json.loads(raw)
+            except (json.JSONDecodeError, TypeError):
+                return {}
+        return raw or {}
 
     def get_associated_devices(self, page_size: int = 100):
         """Все устройства, привязанные к аккаунтам проекта (для авто-поиска)."""

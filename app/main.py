@@ -38,12 +38,22 @@ def _require_device(device_id: str) -> str:
 
 
 def _get_specifications(device_id: str):
+    """Спецификация DP: /v1.0 specifications + единицы/масштаб из Thing-модели (v2.0)."""
     if store.use_demo:
         return demo.demo_specifications(device_id)
     now = time.time()
     cached = _spec_cache.get(device_id)
     if cached is None or now - cached["ts"] > _SPEC_TTL:
-        cached = {"data": store.client().get_specifications(device_id), "ts": now}
+        client = store.client()
+        spec = client.get_specifications(device_id) or {}
+        status_specs = list(spec.get("status") or [])
+        # Дополняем современной Thing-моделью (кастомные DP: заряд, ёмкость и т.п.).
+        try:
+            status_specs += metrics.thing_model_to_spec(client.get_thing_model(device_id)).get("status", [])
+        except Exception:  # noqa: BLE001 — best-effort, старый спек уже есть
+            pass
+        combined = {"status": status_specs, "category": spec.get("category")}
+        cached = {"data": combined, "ts": now}
         _spec_cache[device_id] = cached
     return cached["data"]
 
@@ -53,8 +63,16 @@ def _fetch_normalized(device_id: str) -> dict:
         status = demo.demo_status(device_id)
         spec = demo.demo_specifications(device_id)
     else:
-        status = store.client().get_status(device_id)
+        client = store.client()
+        status = client.get_status(device_id)
         spec = _get_specifications(device_id)
+        # Сливаем кастомные DP из Thing-модели (их часто нет в /v1.0 status).
+        try:
+            props = client.get_thing_properties(device_id)
+            if props:
+                status = metrics.merge_status(status, props)
+        except Exception:  # noqa: BLE001 — best-effort, обычный статус уже получен
+            pass
 
     data = metrics.normalize(status, spec)
     data["eta_30"] = metrics.estimate_time_to_pct(data, 30)
@@ -150,17 +168,28 @@ def api_status(device_id: str = Query(default="")):
 
 @app.get("/api/raw")
 def api_raw(device_id: str = Query(default="")):
+    """Все источники DP для диагностики: /v1.0 status и specifications,
+    а также Thing-модель (v2.0), где обычно и лежат заряд/ёмкость."""
     did = _require_device(device_id)
-    try:
-        if store.use_demo:
-            return {"status": demo.demo_status(did),
-                    "specifications": demo.demo_specifications(did)}
-        client = store.client()
-        return {"status": client.get_status(did),
-                "specifications": _get_specifications(did),
-                "device": client.get_device(did)}
-    except TuyaError as exc:
-        return JSONResponse({"error": str(exc)}, status_code=502)
+    if store.use_demo:
+        return {"status": demo.demo_status(did),
+                "specifications": demo.demo_specifications(did)}
+
+    client = store.client()
+
+    def _safe(fn):
+        try:
+            return fn()
+        except Exception as exc:  # noqa: BLE001 — показываем ошибку по каждому источнику
+            return {"error": str(exc)}
+
+    return {
+        "status_v1": _safe(lambda: client.get_status(did)),
+        "specifications_v1": _safe(lambda: client.get_specifications(did)),
+        "thing_properties_v2": _safe(lambda: client.get_thing_properties(did)),
+        "thing_model_v2": _safe(lambda: client.get_thing_model(did)),
+        "device": _safe(lambda: client.get_device(did)),
+    }
 
 
 @app.get("/healthz")
