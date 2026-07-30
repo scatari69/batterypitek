@@ -16,7 +16,51 @@ from .config import settings
 from .devices import Device, load_devices
 from .tuya_client import TuyaClient
 
-_ALLOWED_UPDATE = {"access_id", "access_key", "endpoint", "poll_interval", "demo_mode", "devices"}
+_ALLOWED_UPDATE = {"access_id", "access_key", "endpoint", "poll_interval", "demo_mode", "devices",
+                   "telegram"}
+
+# Настройки уведомлений в Telegram (значения по умолчанию).
+TELEGRAM_DEFAULTS = {
+    "enabled": False,
+    "bot_token": "",
+    "chat_id": "",
+    "check_interval": 60,      # с — как часто проверять пороги
+    "notify_low_soc": True,    # заряд опустился ниже порога
+    "soc_threshold": 30,       # % — порог заряда (он же цель для оценки времени)
+    "notify_low_eta": True,    # до порога осталось меньше eta_threshold минут
+    "eta_threshold": 60,       # мин
+    "notify_recovery": True,   # сообщение «отбой» при возврате в норму
+    "notify_offline": False,   # устройство недоступно
+    "repeat_minutes": 0,       # мин — повтор напоминания (0 — не повторять)
+}
+
+_TG_BOUNDS = {  # ключ -> (минимум, максимум)
+    "check_interval": (15, 3600),
+    "soc_threshold": (1, 99),
+    "eta_threshold": (1, 10080),
+    "repeat_minutes": (0, 10080),
+}
+
+
+def normalize_telegram(raw: dict | None) -> dict:
+    """Приводим настройки уведомлений к строгим типам и разумным границам."""
+    cfg = dict(TELEGRAM_DEFAULTS)
+    for key, value in (raw or {}).items():
+        if key not in TELEGRAM_DEFAULTS:
+            continue
+        default = TELEGRAM_DEFAULTS[key]
+        if isinstance(default, bool):
+            cfg[key] = bool(value)
+        elif isinstance(default, int):
+            try:
+                num = int(value)
+            except (TypeError, ValueError):
+                continue
+            lo, hi = _TG_BOUNDS[key]
+            cfg[key] = max(lo, min(hi, num))
+        else:
+            cfg[key] = str(value or "").strip()
+    return cfg
 
 
 class Store:
@@ -93,6 +137,10 @@ class Store:
             return bool(self._data["demo_mode"])
         return settings.demo_mode
 
+    @property
+    def telegram(self) -> dict:
+        return normalize_telegram(self._data.get("telegram"))
+
     def has_credentials(self) -> bool:
         return bool(self.access_id and self.access_key)
 
@@ -160,13 +208,31 @@ class Store:
                     continue  # пустой секрет = оставить прежний
                 if key == "endpoint" and value:
                     value = str(value).strip().rstrip("/")
+                if key == "telegram":
+                    self._data[key] = self._merge_telegram(value)
+                    continue
                 self._data[key] = value
             self._client = None  # пересобрать клиент под новые реквизиты
             self._save_unlocked()
 
+    def _merge_telegram(self, patch) -> dict:
+        """Частичное обновление настроек уведомлений (пустой токен = оставить прежний)."""
+        if not isinstance(patch, dict):
+            return normalize_telegram(self._data.get("telegram"))
+        merged = dict(self._data.get("telegram") or {})
+        for key, value in patch.items():
+            if key not in TELEGRAM_DEFAULTS:
+                continue
+            if key == "bot_token" and not str(value or "").strip():
+                continue
+            merged[key] = value
+        return normalize_telegram(merged)
+
     # -------------------------------------------------------- Public view --
     def public_settings(self) -> dict:
         ak = self.access_key
+        tg = self.telegram
+        tg_token = tg.pop("bot_token")
         return {
             "access_id": self.access_id,
             "endpoint": self.endpoint,
@@ -179,6 +245,10 @@ class Store:
             "devices": [{"id": d.get("id"), "name": d.get("name") or d.get("id")}
                         for d in self._data.get("devices", []) or []],
             "auth_enabled": self.auth_enabled,
+            # Токен бота наружу не отдаём — только признак и «хвост».
+            "telegram": {**tg,
+                         "has_token": bool(tg_token),
+                         "token_hint": ("••••" + tg_token[-4:]) if len(tg_token) >= 4 else ""},
         }
 
 

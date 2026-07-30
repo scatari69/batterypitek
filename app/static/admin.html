@@ -182,6 +182,74 @@
     </div>
   </div>
 
+  <!-- Уведомления -->
+  <div class="card">
+    <h2>Уведомления в Telegram</h2>
+    <p class="desc">Бот пишет в чат, когда заряд батареи падает ниже порога или когда
+      до этого порога остаётся мало времени. Создайте бота у
+      <a href="https://t.me/BotFather" target="_blank" rel="noopener">@BotFather</a>,
+      напишите ему (или добавьте в группу) и определите ID чата.</p>
+
+    <div class="toggle" style="margin-top:0">
+      <input type="checkbox" id="tg_enabled">
+      <span class="t">Включить уведомления</span>
+    </div>
+
+    <label>Токен бота</label>
+    <input type="password" id="tg_bot_token" autocomplete="off" placeholder="123456:AA...">
+    <div class="hint" id="tgTokenHint"></div>
+
+    <label>ID чата</label>
+    <div class="row">
+      <input type="text" id="tg_chat_id" spellcheck="false" placeholder="например, 123456789 или -1001234567890">
+      <button class="btn" id="tgChatsBtn" onclick="findChats()">Определить</button>
+    </div>
+    <div class="hint">Личный чат — положительное число, группа/канал — начинается с «−100».</div>
+    <div class="result" id="tgChatsResult"></div>
+    <div class="discover hidden" id="tgChatsList"></div>
+
+    <label>Порог заряда, %</label>
+    <input type="number" id="tg_soc_threshold" min="1" max="99" style="max-width:160px">
+    <div class="hint">Общий порог: и для уведомления о низком заряде, и как цель для оценки времени.</div>
+
+    <div class="toggle">
+      <input type="checkbox" id="tg_notify_low_soc">
+      <span class="t">Заряд опустился ниже порога</span>
+    </div>
+    <div class="toggle">
+      <input type="checkbox" id="tg_notify_low_eta">
+      <span class="t">До порога осталось меньше, минут:</span>
+      <input type="number" id="tg_eta_threshold" min="1" max="10080" style="max-width:110px">
+    </div>
+    <div class="toggle">
+      <input type="checkbox" id="tg_notify_recovery">
+      <span class="t">Сообщать о возврате в норму («отбой»)</span>
+    </div>
+    <div class="toggle">
+      <input type="checkbox" id="tg_notify_offline">
+      <span class="t">Устройство недоступно (ошибка опроса)</span>
+    </div>
+
+    <div class="row wrap" style="margin-top:14px; align-items:flex-end">
+      <div style="flex:1; min-width:180px">
+        <label style="margin-top:0">Интервал проверки, секунд</label>
+        <input type="number" id="tg_check_interval" min="15" max="3600">
+      </div>
+      <div style="flex:1; min-width:180px">
+        <label style="margin-top:0">Повторять напоминание, минут</label>
+        <input type="number" id="tg_repeat_minutes" min="0" max="10080">
+      </div>
+    </div>
+    <div class="hint">0 — не повторять: пока показатель не вернётся в норму, новых сообщений не будет.</div>
+
+    <div class="row wrap" style="margin-top:14px">
+      <button class="btn" id="tgTestBtn" onclick="testTelegram()">Отправить тестовое сообщение</button>
+      <button class="btn ghost" onclick="loadTgLog()">Обновить журнал</button>
+    </div>
+    <div class="result" id="tgTestResult"></div>
+    <div class="discover hidden" id="tgLog"></div>
+  </div>
+
   <!-- Безопасность -->
   <div class="card">
     <h2>Безопасность</h2>
@@ -270,6 +338,104 @@ async function load(){
   $("devList").innerHTML = "";
   (s.devices || []).forEach(d => addDeviceRow(d.name, d.id));
   if (!(s.devices||[]).length) addDeviceRow("", "");
+
+  loadTelegram(s.telegram || {});
+}
+
+/* ---------------- Уведомления ---------------- */
+function loadTelegram(tg){
+  $("tg_enabled").checked = !!tg.enabled;
+  $("tg_bot_token").value = "";
+  $("tg_bot_token").placeholder = tg.has_token ? `сохранён (${tg.token_hint}) — оставьте пустым` : "123456:AA...";
+  $("tgTokenHint").textContent = tg.has_token ? "Оставьте поле пустым, чтобы не менять сохранённый токен." : "";
+  $("tg_chat_id").value = tg.chat_id || "";
+  $("tg_soc_threshold").value = tg.soc_threshold ?? 30;
+  $("tg_eta_threshold").value = tg.eta_threshold ?? 60;
+  $("tg_check_interval").value = tg.check_interval ?? 60;
+  $("tg_repeat_minutes").value = tg.repeat_minutes ?? 0;
+  $("tg_notify_low_soc").checked = tg.notify_low_soc !== false;
+  $("tg_notify_low_eta").checked = tg.notify_low_eta !== false;
+  $("tg_notify_recovery").checked = tg.notify_recovery !== false;
+  $("tg_notify_offline").checked = !!tg.notify_offline;
+  if (tg.enabled) loadTgLog();
+}
+
+function collectTelegram(){
+  const tg = {
+    enabled: $("tg_enabled").checked,
+    chat_id: $("tg_chat_id").value.trim(),
+    soc_threshold: parseInt($("tg_soc_threshold").value) || 30,
+    eta_threshold: parseInt($("tg_eta_threshold").value) || 60,
+    check_interval: parseInt($("tg_check_interval").value) || 60,
+    repeat_minutes: parseInt($("tg_repeat_minutes").value) || 0,
+    notify_low_soc: $("tg_notify_low_soc").checked,
+    notify_low_eta: $("tg_notify_low_eta").checked,
+    notify_recovery: $("tg_notify_recovery").checked,
+    notify_offline: $("tg_notify_offline").checked,
+  };
+  const t = $("tg_bot_token").value.trim();
+  if (t) tg.bot_token = t;   // пустое поле = оставить сохранённый токен
+  return tg;
+}
+
+async function testTelegram(){
+  const btn = $("tgTestBtn"); btn.disabled = true; btn.textContent = "Отправка…";
+  try {
+    const data = await api("/api/admin/telegram/test", "POST", {
+      bot_token: $("tg_bot_token").value.trim(),
+      chat_id: $("tg_chat_id").value.trim(),
+    });
+    showResult($("tgTestResult"), data.ok, data.message);
+  } catch(e){
+    if (e.message !== "unauthorized") showResult($("tgTestResult"), false, "Ошибка: " + e.message);
+  } finally { btn.disabled = false; btn.textContent = "Отправить тестовое сообщение"; }
+}
+
+async function findChats(){
+  const btn = $("tgChatsBtn"); btn.disabled = true; btn.textContent = "Поиск…";
+  const box = $("tgChatsList");
+  try {
+    const data = await api("/api/admin/telegram/chats", "POST", {
+      bot_token: $("tg_bot_token").value.trim(),
+    });
+    showResult($("tgChatsResult"), data.ok, data.message);
+    const chats = data.chats || [];
+    box.classList.toggle("hidden", !chats.length);
+    box.innerHTML = chats.map(c => `
+      <div class="disc-item">
+        <div style="flex:1">
+          <div class="dn">${escapeAttr(c.title)}</div>
+          <div class="di">${escapeAttr(c.id)} · ${escapeAttr(c.type || "")}</div>
+        </div>
+        <button class="btn ghost" onclick="pickChat('${escapeAttr(c.id)}')">Выбрать</button>
+      </div>`).join("");
+  } catch(e){
+    if (e.message !== "unauthorized") showResult($("tgChatsResult"), false, "Ошибка: " + e.message);
+  } finally { btn.disabled = false; btn.textContent = "Определить"; }
+}
+function pickChat(id){
+  $("tg_chat_id").value = id;
+  $("tgChatsList").classList.add("hidden");
+  showToast("ID чата подставлен — не забудьте сохранить.");
+}
+
+async function loadTgLog(){
+  const box = $("tgLog");
+  try {
+    const data = await api("/api/admin/telegram/log");
+    const events = data.events || [];
+    if (!events.length){ box.classList.add("hidden"); return; }
+    box.innerHTML = `<div style="font-size:12px;color:var(--muted);margin-bottom:6px">Последние уведомления</div>` +
+      events.map(e => `
+      <div class="disc-item">
+        <div style="flex:1">
+          <div class="dn" style="white-space:pre-wrap">${escapeAttr(e.text)}</div>
+          <div class="di">${new Date(e.ts).toLocaleString("ru-RU")}${e.ok ? "" : " · не отправлено: " + escapeAttr(e.error)}</div>
+        </div>
+        <span class="st ${e.ok?"on":"off"}">${e.ok?"✓":"✕"}</span>
+      </div>`).join("");
+    box.classList.remove("hidden");
+  } catch(e){ /* журнал не критичен */ }
 }
 
 /* ---------------- Устройства ---------------- */
@@ -356,6 +522,7 @@ async function saveSettings(){
     poll_interval: parseInt($("poll_interval").value) || 10,
     demo_mode: $("demo_mode").checked,
     devices: collectDevices(),
+    telegram: collectTelegram(),
   };
   const key = $("access_key").value.trim();
   if (key) payload.access_key = key;

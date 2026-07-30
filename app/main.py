@@ -1,23 +1,34 @@
 """FastAPI-приложение.
 
 Публичная часть: список устройств, детальный дашборд, JSON API.
-Админ-часть (/admin): интерактивная настройка Tuya, поиск устройств, параметры.
-Актуальные настройки хранятся в store (DATA_DIR/settings.json).
+Админ-часть (/admin): интерактивная настройка Tuya, поиск устройств, параметры,
+уведомления в Telegram. Актуальные настройки хранятся в store (DATA_DIR/settings.json).
 """
 
 import time
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import Body, Depends, FastAPI, Header, HTTPException, Query
 from fastapi.responses import FileResponse, JSONResponse
 
-from . import demo, metrics
+from . import demo, metrics, notifier
 from .store import store
 from .tuya_client import TuyaError
 
 STATIC_DIR = Path(__file__).parent / "static"
 
-app = FastAPI(title="Battery Monitor", version="3.0.0")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    watcher.start()
+    try:
+        yield
+    finally:
+        watcher.stop()
+
+
+app = FastAPI(title="Battery Monitor", version="3.1.0", lifespan=lifespan)
 
 # Кэш спецификаций по device_id.
 _spec_cache: dict[str, dict] = {}
@@ -83,6 +94,10 @@ def _fetch_normalized(device_id: str) -> dict:
     data["timestamp"] = int(time.time() * 1000)
     data["demo"] = store.use_demo
     return data
+
+
+# Фоновый наблюдатель порогов для уведомлений (стартует в lifespan).
+watcher = notifier.Watcher(store=store, fetch=_fetch_normalized)
 
 
 def require_admin(authorization: str | None = Header(default=None)) -> bool:
@@ -215,7 +230,7 @@ def admin_get_settings(_: bool = Depends(require_admin)):
 @app.post("/api/admin/settings")
 def admin_save_settings(payload: dict = Body(...), _: bool = Depends(require_admin)):
     patch: dict = {}
-    for key in ("access_id", "endpoint", "demo_mode", "poll_interval", "devices"):
+    for key in ("access_id", "endpoint", "demo_mode", "poll_interval", "devices", "telegram"):
         if key in payload:
             patch[key] = payload[key]
     if payload.get("access_key"):
@@ -239,6 +254,7 @@ def admin_save_settings(payload: dict = Body(...), _: bool = Depends(require_adm
 
     store.update(patch)
     _spec_cache.clear()
+    watcher.wake()  # применить новые пороги/интервал сразу
     return {"ok": True, "settings": store.public_settings()}
 
 
@@ -289,3 +305,55 @@ def admin_password(payload: dict = Body(...), _: bool = Depends(require_admin)):
         raise HTTPException(status_code=403, detail="Неверный текущий пароль")
     store.set_password(new)
     return {"ok": True, "token": store.make_token()}
+
+
+# ------------------------------------------------------------ Уведомления TG --
+def _tg_creds(payload: dict) -> tuple[str, str]:
+    """Реквизиты для разовой операции: из формы, иначе сохранённые."""
+    cfg = store.telegram
+    token = str(payload.get("bot_token") or "").strip() or cfg["bot_token"]
+    chat_id = str(payload.get("chat_id") or "").strip() or cfg["chat_id"]
+    return token, chat_id
+
+
+@app.post("/api/admin/telegram/test")
+def admin_telegram_test(payload: dict = Body(default={}), _: bool = Depends(require_admin)):
+    """Отправляет тестовое сообщение — можно проверить ещё до сохранения настроек."""
+    token, chat_id = _tg_creds(payload)
+    if not token:
+        return {"ok": False, "message": "Укажите токен бота"}
+    if not chat_id:
+        return {"ok": False, "message": "Укажите ID чата"}
+    try:
+        bot = notifier.get_me(token)
+        notifier.send_message(
+            token, chat_id,
+            "✅ Battery Monitor: проверка связи.\n"
+            "Уведомления о заряде батарей будут приходить в этот чат.")
+    except notifier.TelegramError as exc:
+        return {"ok": False, "message": str(exc)}
+    name = bot.get("username") or bot.get("first_name") or "бот"
+    return {"ok": True, "message": f"Сообщение отправлено ботом @{name}"}
+
+
+@app.post("/api/admin/telegram/chats")
+def admin_telegram_chats(payload: dict = Body(default={}), _: bool = Depends(require_admin)):
+    """Подсказка по chat_id: чаты, из которых боту недавно писали."""
+    token, _chat = _tg_creds(payload)
+    if not token:
+        return {"ok": False, "message": "Укажите токен бота", "chats": []}
+    try:
+        chats = notifier.discover_chats(token)
+    except notifier.TelegramError as exc:
+        return {"ok": False, "message": str(exc), "chats": []}
+    if not chats:
+        return {"ok": False, "chats": [],
+                "message": "Чаты не найдены. Напишите боту любое сообщение (или добавьте его "
+                           "в группу) и повторите."}
+    return {"ok": True, "chats": chats, "message": f"Найдено чатов: {len(chats)}"}
+
+
+@app.get("/api/admin/telegram/log")
+def admin_telegram_log(_: bool = Depends(require_admin)):
+    """Последние отправленные (и неудавшиеся) уведомления — для диагностики."""
+    return {"events": watcher.recent(), "running": watcher.is_alive()}
