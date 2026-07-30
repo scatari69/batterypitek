@@ -149,3 +149,9 @@ battery-monitor/
 ├── config/devices.yml.example
 ├── Dockerfile · docker-compose.yml · requirements.txt · .env.example
 ```
+
+---
+
+## Лицензия
+
+[MIT](LICENSE) © 2026 scatari69
