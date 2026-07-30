@@ -12,9 +12,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
 
-# Непривилегированный пользователь; /data должен принадлежать ему
-# (именованный том Docker инициализируется с этими правами).
-RUN useradd --create-home appuser \
+# Непривилегированный пользователь с UID 1000 — совпадает с типичным UID хоста,
+# чтобы bind-mount ./data:/data был доступен на запись (см. docker-compose.yml).
+RUN useradd --create-home --uid 1000 appuser \
     && mkdir -p /data \
     && chown appuser:appuser /data
 USER appuser

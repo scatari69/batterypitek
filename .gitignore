@@ -1,5 +1,8 @@
 .env
-data/
+# Содержимое ./data игнорируем, но сам каталог держим в репозитории:
+# он монтируется в контейнер, и Docker не должен создавать его от root.
+data/*
+!data/.gitkeep
 config/devices.yml
 .claude/
 __pycache__/

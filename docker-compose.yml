@@ -3,6 +3,9 @@ services:
     build: .
     container_name: battery-monitor
     restart: unless-stopped
+    # Контейнер пишет в ./data на хосте, поэтому должен работать под вашим UID.
+    # По умолчанию 1000:1000; если `id -u` даёт другое — задайте APP_UID/APP_GID в .env.
+    user: "${APP_UID:-1000}:${APP_GID:-1000}"
     pull_policy: build   # собирать локально, не пытаться тянуть из реестра
     ports:
       - "8000:8000"
@@ -11,9 +14,9 @@ services:
       - path: .env
         required: false
     volumes:
-      # Постоянные настройки из админ-панели (settings.json). Именованный том, чтобы
-      # права не зависели от хоста (контейнер работает под непривилегированным пользователем).
-      - battery-data:/data
+      # Постоянные настройки из админ-панели (settings.json) — прямо в папке проекта,
+      # чтобы их было видно и можно было забэкапить. Каталог в .gitignore.
+      - ./data:/data
       # Необязательный bootstrap-список устройств (config/devices.yml.example)
       - ./config:/config:ro
     environment:
@@ -28,6 +31,3 @@ services:
       DEVICES_CONFIG: ${DEVICES_CONFIG:-/config/devices.yml}
       POLL_INTERVAL: ${POLL_INTERVAL:-10}
       DEMO_MODE: ${DEMO_MODE:-false}
-
-volumes:
-  battery-data:
