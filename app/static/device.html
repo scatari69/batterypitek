@@ -4,145 +4,134 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Battery Monitor · устройство</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'><g fill='%234fe3c1'><rect x='0' y='1' width='6' height='1'/><rect x='0' y='6' width='6' height='1'/><rect x='0' y='2' width='1' height='4'/><rect x='5' y='2' width='1' height='4'/><rect x='6' y='3' width='1' height='2'/><rect x='1' y='3' width='3' height='2'/></g></svg>">
+<link rel="stylesheet" href="/static/pixel.css">
 <style>
-  :root {
-    color-scheme: light;
-    --page:#f9f9f7; --surface:#fcfcfb;
-    --text-primary:#0b0b0b; --text-secondary:#52514e; --muted:#898781;
-    --grid:#e1e0d9; --baseline:#c3c2b7; --border:rgba(11,11,11,0.10);
-    --series-1:#2a78d6; --series-fill:rgba(42,120,214,0.14);
-    --good:#0ca30c; --warning:#fab219; --critical:#d03b3b;
-    --radius:14px;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      color-scheme: dark;
-      --page:#0d0d0d; --surface:#1a1a19;
-      --text-primary:#ffffff; --text-secondary:#c3c2b7; --muted:#898781;
-      --grid:#2c2c2a; --baseline:#383835; --border:rgba(255,255,255,0.10);
-      --series-1:#3987e5; --series-fill:rgba(57,135,229,0.16);
-      --good:#0ca30c; --warning:#fab219; --critical:#d03b3b;
-    }
-  }
-  * { box-sizing:border-box; }
-  body {
-    margin:0; background:var(--page); color:var(--text-primary);
-    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
-    line-height:1.4; -webkit-font-smoothing:antialiased;
-  }
-  .wrap { max-width:1040px; margin:0 auto; padding:24px 20px 48px; }
-  a { color:inherit; }
+  .page { max-width:1080px; margin:0 auto; padding:26px 20px 40px; }
 
-  .back { display:inline-flex; align-items:center; gap:6px; font-size:13px;
-    color:var(--text-secondary); text-decoration:none; margin-bottom:10px; }
-  .back:hover { color:var(--text-primary); }
-  header { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:22px; }
-  header h1 { font-size:20px; margin:0; font-weight:650; }
-  .sub { color:var(--muted); font-size:13px; }
-  .badge { font-size:11px; font-weight:600; letter-spacing:.02em; padding:3px 9px;
-    border-radius:999px; border:1px solid var(--border); }
-  .badge.demo { color:var(--warning); border-color:color-mix(in srgb,var(--warning) 45%,transparent); }
-  .spacer { flex:1; }
-  .conn { display:flex; align-items:center; gap:7px; font-size:13px; color:var(--text-secondary); }
-  .dot { width:9px; height:9px; border-radius:50%; background:var(--muted); }
-  .dot.online { background:var(--good); box-shadow:0 0 0 3px color-mix(in srgb,var(--good) 22%,transparent); }
-  .dot.offline { background:var(--critical); box-shadow:0 0 0 3px color-mix(in srgb,var(--critical) 22%,transparent); }
+  .back { display:inline-flex; align-items:center; gap:8px; margin-bottom:14px;
+    font-size:11px; letter-spacing:.12em; text-transform:uppercase; font-weight:700;
+    color:var(--dim); text-decoration:none; }
+  .back:hover { color:var(--teal); }
 
-  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px; }
-  .card.sec { padding:6px 4px; }
-  .top { display:grid; grid-template-columns:minmax(240px,1fr) 1.5fr; gap:16px; margin-bottom:16px; }
-  @media (max-width:720px){ .top { grid-template-columns:1fr; } }
+  header { display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    padding:16px 18px; margin-bottom:18px; }
+  header .logo { color:var(--teal); display:flex; }
+  h1 { margin:0; font-size:16px; font-weight:700; letter-spacing:.14em;
+    text-transform:uppercase; }
+  header .sub { margin-top:3px; }
+  .badge { padding:4px 8px; background:var(--amber); color:var(--void);
+    font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; }
+  .conn { display:flex; align-items:center; gap:8px; font-size:11px;
+    letter-spacing:.1em; text-transform:uppercase; font-weight:700; }
 
-  .battery-card { display:flex; flex-direction:column; gap:13px; }
-  .soc-num { font-size:52px; font-weight:680; line-height:1; letter-spacing:-.02em; }
-  .soc-num small { font-size:22px; color:var(--muted); font-weight:600; margin-left:4px; }
-  .state-line { display:flex; align-items:center; gap:8px; }
-  .state-pill { font-size:12px; font-weight:600; padding:3px 10px; border-radius:999px;
-    border:1px solid var(--border); display:inline-flex; align-items:center; gap:6px; }
-  .battery { position:relative; height:34px; border:2px solid var(--baseline);
-    border-radius:8px; padding:3px; display:flex; align-items:stretch; }
-  .battery::after { content:""; position:absolute; right:-7px; top:50%; transform:translateY(-50%);
-    width:5px; height:14px; background:var(--baseline); border-radius:0 3px 3px 0; }
-  .battery-fill { border-radius:4px; transition:width .5s ease, background .4s ease; min-width:2px; }
-  .cap-line { font-size:13px; color:var(--muted); }
-  .cap-line b { color:var(--text-secondary); font-weight:600; }
-  .eta-line { font-size:13.5px; color:var(--text-secondary); }
-  .eta-line b { color:var(--text-primary); font-weight:640; }
-  .eta-line.warn b, .eta-line.warn { color:var(--warning); }
+  .error { display:none; padding:12px 16px; margin-bottom:18px; font-size:12.5px;
+    color:var(--red); align-items:center; gap:10px; }
+  .error.show { display:flex; }
 
-  .tiles { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px; align-content:start; }
-  .tile { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:13px 15px; }
-  .tile .k { font-size:12px; color:var(--muted); display:flex; align-items:center; gap:5px; }
-  .tile .v { font-size:23px; font-weight:640; margin-top:5px; letter-spacing:-.01em; font-variant-numeric:tabular-nums; }
-  .tile .v small { font-size:14px; color:var(--muted); font-weight:600; margin-left:3px; }
-  .tile .v.pos { color:var(--good); }
-  .tile .v.neg { color:var(--series-1); }
+  /* ------------------------------------------------------- Верхний блок -- */
+  .top { display:grid; grid-template-columns:minmax(280px,.9fr) 1.6fr; gap:16px; margin-bottom:16px; }
+  @media (max-width:820px) { .top { grid-template-columns:1fr; } }
 
-  .chart-card { margin-bottom:16px; }
-  .chart-head { display:flex; align-items:baseline; gap:10px; margin-bottom:6px; }
-  .chart-head h2 { font-size:15px; margin:0; font-weight:620; }
-  .chart-head .now { margin-left:auto; font-size:13px; color:var(--text-secondary); font-variant-numeric:tabular-nums; }
-  .chart-scroll { overflow-x:auto; }
-  svg.chart { width:100%; height:200px; display:block; touch-action:none; }
-  .tooltip { position:fixed; pointer-events:none; z-index:10; background:var(--surface);
-    border:1px solid var(--border); border-radius:8px; padding:6px 9px; font-size:12px;
-    box-shadow:0 4px 16px rgba(0,0,0,.18); opacity:0; transition:opacity .1s; white-space:nowrap; }
+  .charge { padding:18px; display:flex; flex-direction:column; gap:14px; }
+  .charge .socline { display:flex; align-items:flex-end; gap:14px; }
+  .charge .socline .pxwrap { line-height:0; }
+  .charge .state { display:flex; align-items:center; gap:8px; font-size:12px;
+    letter-spacing:.08em; text-transform:uppercase; font-weight:700; margin-bottom:4px; }
+  .eta { font-size:12.5px; font-variant-numeric:tabular-nums; }
+  .eta b { font-weight:700; }
+  .caps { display:flex; gap:18px; flex-wrap:wrap; font-size:11.5px; color:var(--dim);
+    font-variant-numeric:tabular-nums; padding-top:12px;
+    background-image:linear-gradient(90deg,var(--edge) 0 4px,transparent 4px 8px);
+    background-size:8px var(--px); background-repeat:repeat-x; }
+  .caps b { color:var(--ink); font-weight:700; }
+
+  .tiles { display:grid; grid-template-columns:repeat(auto-fill,minmax(146px,1fr));
+    gap:12px; align-content:start; }
+  .tile { padding:12px 14px; }
+  .tile .v { font-size:21px; font-weight:700; margin-top:6px; font-variant-numeric:tabular-nums;
+    letter-spacing:.02em; }
+  .tile .v small { font-size:12px; color:var(--dim); font-weight:700; margin-left:3px; }
+  .tile .v.pos { color:var(--lime); } .tile .v.neg { color:var(--teal); }
+
+  /* ------------------------------------------------------------ График -- */
+  .chart-card { padding:16px 18px 12px; margin-bottom:16px; }
+  .chart-head { display:flex; align-items:baseline; gap:12px; margin-bottom:12px; }
+  .chart-head .now { margin-left:auto; font-size:15px; font-weight:700;
+    font-variant-numeric:tabular-nums; }
+  svg.chart { width:100%; height:210px; display:block; touch-action:none; }
+  .tooltip { position:fixed; pointer-events:none; z-index:95; padding:6px 9px;
+    font-size:11px; opacity:0; transition:opacity .1s; white-space:nowrap;
+    background:var(--panel); box-shadow:0 -2px var(--edge),0 2px var(--edge),
+      -2px 0 var(--edge),2px 0 var(--edge),3px 3px 0 var(--drop); }
   .tooltip b { font-variant-numeric:tabular-nums; }
 
-  h2.section { font-size:14px; color:var(--text-secondary); margin:22px 0 10px; font-weight:600; }
-  table { width:100%; border-collapse:collapse; font-size:13.5px; }
-  td { text-align:left; padding:9px 10px; border-bottom:1px solid var(--border); }
-  td.val { text-align:right; font-variant-numeric:tabular-nums; font-weight:600; white-space:nowrap; }
-  td.code { color:var(--muted); font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; }
-  tr:last-child td { border-bottom:none; }
+  /* ------------------------------------------------------------ Таблицы -- */
+  h2.section { margin:22px 0 10px; }
+  table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  td { text-align:left; padding:9px 14px;
+    background-image:linear-gradient(90deg,var(--edge) 0 4px,transparent 4px 8px);
+    background-size:8px var(--px); background-repeat:repeat-x; }
+  tr:first-child td { background-image:none; }
+  td.code { color:var(--dim); font-size:11px; letter-spacing:.02em; }
+  td.val { text-align:right; font-variant-numeric:tabular-nums; font-weight:700;
+    white-space:nowrap; }
 
-  .error { display:none; background:color-mix(in srgb,var(--critical) 12%,var(--surface));
-    border:1px solid color-mix(in srgb,var(--critical) 40%,transparent); color:var(--text-primary);
-    border-radius:12px; padding:12px 16px; margin-bottom:16px; font-size:13.5px; }
-  .error.show { display:block; }
-  footer { margin-top:28px; color:var(--muted); font-size:12px; text-align:center; }
+  .statusbar { display:flex; gap:10px; align-items:center; margin-top:16px; padding:0 4px; }
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="page">
   <a class="back" href="/">← Все устройства</a>
-  <header>
+
+  <header class="px-box raised">
+    <span class="logo" id="logo"></span>
     <div>
-      <h1>🔋 <span id="devName">Устройство</span></h1>
-      <div class="sub" id="devsub">загрузка…</div>
+      <h1 id="devName">Устройство</h1>
+      <div class="sub label" id="devsub">инициализация…</div>
     </div>
-    <span class="badge demo" id="demoBadge" style="display:none">ДЕМО-РЕЖИМ</span>
-    <div class="spacer"></div>
-    <div class="conn"><span class="dot" id="connDot"></span><span id="connText">Подключение…</span></div>
+    <span class="spacer"></span>
+    <span class="badge" id="demoBadge" hidden>Демо</span>
+    <span class="conn"><span class="led" id="connDot"></span><span id="connText">Опрос…</span></span>
   </header>
 
-  <div class="error" id="errorBox"></div>
+  <div class="error px-box" id="errorBox"></div>
 
   <div class="top">
-    <div class="card battery-card">
-      <div><span class="soc-num" id="socNum">—<small>%</small></span></div>
-      <div class="battery"><div class="battery-fill" id="battFill" style="width:0"></div></div>
-      <div class="state-line"><span class="state-pill" id="statePill">—</span></div>
-      <div class="eta-line" id="etaLine"></div>
-      <div class="cap-line" id="capLine"></div>
+    <div class="charge px-box raised">
+      <span class="label">Заряд батареи</span>
+      <div class="socline">
+        <span class="pxwrap t-ok" id="socNum"></span>
+        <div>
+          <div class="state" id="statePill"></div>
+          <div class="eta" id="etaLine"></div>
+        </div>
+      </div>
+      <div class="batt">
+        <span class="meter"><i class="lvl-ok" id="battFill" style="width:0"></i></span><span class="nub"></span>
+      </div>
+      <div class="caps" id="capLine"></div>
     </div>
     <div class="tiles" id="tiles"></div>
   </div>
 
-  <div class="card chart-card">
+  <div class="chart-card px-box raised">
     <div class="chart-head">
-      <h2 id="chartTitle">История</h2>
+      <span class="label" id="chartTitle">История</span>
       <span class="now" id="chartNow"></span>
     </div>
-    <div class="chart-scroll"><svg class="chart" id="chart" preserveAspectRatio="none"></svg></div>
+    <svg class="chart" id="chart" preserveAspectRatio="none"></svg>
   </div>
 
   <div id="groups"></div>
 
-  <footer id="footer">обновлено —</footer>
+  <div class="statusbar label">
+    <span id="footer">опрос…</span><span class="cursor" id="cursor"></span>
+  </div>
 </div>
 <div class="tooltip" id="tooltip"></div>
 
+<script src="/static/pixel.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const DEVICE_ID = decodeURIComponent((location.pathname.split("/").filter(Boolean).pop()) || "");
@@ -164,72 +153,50 @@ const VALUE_LABELS = { actual_cap:"фактическая", rated_cap:"номи�
 function fmt(v, unit) {
   if (v === null || v === undefined) return "—";
   if (typeof v === "boolean") return v ? "да" : "нет";
-  if (typeof v === "number") {
-    const abs = Math.abs(v); let s;
-    if (Number.isInteger(v)) s = String(v);
-    else if (abs >= 100) s = v.toFixed(0);
-    else if (abs >= 10) s = v.toFixed(1);
-    else s = v.toFixed(2);
-    return unit ? `${s} ${unit}` : s;
-  }
+  if (typeof v === "number") return fmtNum(v, unit);
   return VALUE_LABELS[v] || String(v);
 }
-function num(v, digits=2){
+function num(v, digits = 2) {
   if (typeof v !== "number") return "—";
   return (Number.isInteger(v) ? v : +v.toFixed(digits)).toLocaleString("ru-RU");
 }
-function fmtDuration(min){
-  if (min == null || !isFinite(min)) return null;
-  if (min < 1) return "менее минуты";
-  const d = Math.floor(min/1440), h = Math.floor((min%1440)/60), m = Math.round(min%60);
-  if (d > 0) return `${d} дн ${h} ч`;
-  if (h > 0) return `${h} ч ${m} мин`;
-  return `${m} мин`;
-}
-function escapeHtml(s){ return String(s ?? "").replace(/[&<>"]/g, c =>
-  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
-
-const STATE = {
-  charging:    { label:"Зарядка",   icon:"⬆", color:"var(--good)" },
-  discharging: { label:"Разрядка",  icon:"⬇", color:"var(--series-1)" },
-  idle:        { label:"Ожидание",  icon:"◦", color:"var(--muted)" },
-  unknown:     { label:"—",         icon:"",  color:"var(--muted)" },
-};
 
 async function loadConfig() {
   try {
     const c = await (await fetch("/api/config")).json();
     pollInterval = c.poll_interval || 10;
-    if (c.demo_mode) $("demoBadge").style.display = "";
+    $("demoBadge").hidden = !c.demo_mode;
     const dev = (c.devices || []).find(d => d.id === DEVICE_ID);
     if (dev) $("devName").textContent = dev.name;
     $("devsub").textContent = `${DEVICE_ID} · ${new URL(c.endpoint).host}`;
-  } catch (e) {}
+  } catch (e) { $("devsub").textContent = "сервер не отвечает"; }
 }
 
 function setConn(online, err) {
-  $("connDot").className = "dot " + (online ? "online" : "offline");
+  $("connDot").className = "led " + (online ? "on" : "off");
   $("connText").textContent = online ? "На связи" : "Нет связи";
+  $("connText").className = online ? "t-ok" : "t-low";
   $("errorBox").classList.toggle("show", !!err);
-  if (err) $("errorBox").textContent = "⚠ " + err;
+  if (err) $("errorBox").innerHTML = `${pixelSprite("alert", { scale:2 })} ${escapeHtml(err)}`;
+  $("cursor").style.background = online ? "var(--teal)" : "var(--red)";
 }
 
 function etaText(eta) {
   if (!eta) return "";
-  if (eta.note === "at_or_below") return `<span class="warn">Заряд уже ≤ 30%</span>`;
-  if (eta.note === "not_discharging") return "Разряд не идёт";
-  if (eta.note === "no_data") return "";
+  if (eta.note === "at_or_below") return `<span class="t-warn">Заряд уже ≤ 30 %</span>`;
+  if (eta.note === "not_discharging") return `<span class="t-dim">Разряд не идёт</span>`;
+  if (eta.note === "no_data") return `<span class="t-dim">Нет данных о ёмкости</span>`;
   const d = fmtDuration(eta.minutes);
-  return d ? `До 30%: <b>≈ ${d}</b>` : "";
+  return d ? `До 30 %: <b>≈ ${d}</b>` : "";
 }
 
 function tileHtml(m) {
   let cls = "v";
-  if ((m.role === "current" || m.role === "power") && typeof m.value === "number") {
+  if (m.role === "current" && typeof m.value === "number") {
     if (m.value > 0.02) cls += " pos"; else if (m.value < -0.02) cls += " neg";
   }
   const val = fmt(m.value, m.unit).replace(/\s(\S+)$/, ' <small>$1</small>');
-  return `<div class="tile"><div class="k">${m.icon || ""} ${escapeHtml(m.label)}</div>
+  return `<div class="tile px-box"><div class="label">${escapeHtml(m.label)}</div>
           <div class="${cls}">${val}</div></div>`;
 }
 
@@ -238,58 +205,58 @@ function render(data) {
   const primary = data.primary || {};
   if (data.name) $("devName").textContent = data.name;
 
-  // --- Батарея ---
+  // --- Заряд ---
   const soc = primary.soc;
   if (soc && typeof soc.value === "number") {
     const p = Math.max(0, Math.min(100, soc.value));
-    $("socNum").innerHTML = `${Math.round(p)}<small>%</small>`;
+    const lvl = socLevel(p);
+    $("socNum").className = "pxwrap t-" + lvl;
+    $("socNum").innerHTML = pixelText(Math.round(p) + "%", { scale: 6 });
     const fill = $("battFill");
     fill.style.width = p + "%";
-    fill.style.background = p < 20 ? "var(--critical)" : p < 50 ? "var(--warning)" : "var(--good)";
+    fill.className = "lvl-" + lvl;
   }
 
-  const st = STATE[data.state] || STATE.unknown;
-  const pill = $("statePill");
-  pill.textContent = `${st.icon} ${st.label}`.trim();
-  pill.style.color = st.color;
-  pill.style.borderColor = `color-mix(in srgb, ${st.color} 45%, transparent)`;
+  const st = PX_STATE[data.state] || PX_STATE.unknown;
+  $("statePill").className = "state " + st.cls;
+  $("statePill").innerHTML = pixelSprite(st.sprite, { scale:2 }) + " " + st.label;
 
-  const eta = etaText(data.eta_30);
-  $("etaLine").className = "eta-line" + ((data.eta_30 && data.eta_30.note === "at_or_below") ? " warn" : "");
-  $("etaLine").innerHTML = eta;
+  $("etaLine").innerHTML = etaText(data.eta_30);
 
-  // Ёмкость + сопротивление
+  // Ёмкость и сопротивление
   const cap = metrics.find(m => m.role === "capacity" && m.cap_kind === "remaining")
            || metrics.find(m => m.code === "cap");
+  const total = metrics.find(m => m.role === "capacity" && m.cap_kind === "total");
   const res = metrics.find(m => m.code === "resistance");
-  let capHtml = "";
-  if (cap) capHtml += `Ёмкость: <b>${fmt(cap.value, cap.unit)}</b>`;
-  if (res) capHtml += (capHtml ? " · " : "") + `R: <b>${fmt(res.value, res.unit)}</b>`;
-  $("capLine").innerHTML = capHtml;
+  let caps = "";
+  if (cap) caps += `<span>Остаток <b>${fmt(cap.value, cap.unit)}</b></span>`;
+  if (total) caps += `<span>Всего <b>${fmt(total.value, total.unit)}</b></span>`;
+  if (res) caps += `<span>Сопротивление <b>${fmt(res.value, res.unit)}</b></span>`;
+  $("capLine").innerHTML = caps;
 
-  // --- Живые плитки ---
+  // --- Живые показания ---
   const tiles = metrics.filter(m => m.group === "live" && !TILE_EXCLUDE.has(m.code));
-  tiles.sort((a,b) => (TILE_PRIORITY.indexOf(a.code)+1 || 99) - (TILE_PRIORITY.indexOf(b.code)+1 || 99));
+  tiles.sort((a, b) => (TILE_PRIORITY.indexOf(a.code) + 1 || 99) - (TILE_PRIORITY.indexOf(b.code) + 1 || 99));
   $("tiles").innerHTML = tiles.map(tileHtml).join("");
 
-  // --- Группы ---
+  // --- Группы точек данных ---
   let gh = "";
   for (const g of GROUP_ORDER) {
     const items = metrics.filter(m => m.group === g);
     if (!items.length) continue;
-    gh += `<h2 class="section">${GROUP_TITLES[g]}</h2><div class="card sec"><table><tbody>` +
-      items.map(m => `<tr><td>${m.icon || ""} ${escapeHtml(m.label)}</td>
+    gh += `<h2 class="section label">${GROUP_TITLES[g]}</h2><div class="px-box"><table><tbody>` +
+      items.map(m => `<tr><td>${escapeHtml(m.label)}</td>
         <td class="code">${escapeHtml(m.code)}</td>
         <td class="val">${fmt(m.value, m.unit)}</td></tr>`).join("") +
       `</tbody></table></div>`;
   }
   $("groups").innerHTML = gh;
 
-  // --- График: ток / мощность / напряжение ---
+  // --- График ---
   const src = primary.current || primary.power || primary.voltage;
   if (src && typeof src.value === "number") {
     chartMeta = { unit: src.unit, role: src.role,
-      title: src.role === "current" ? "Ток (заряд / разряд)"
+      title: src.role === "current" ? "Ток · заряд и разряд"
            : src.role === "power" ? "Мощность" : "Напряжение" };
     history.push({ t: data.timestamp, value: src.value });
     if (history.length > HISTORY_MAX) history.shift();
@@ -298,15 +265,16 @@ function render(data) {
     drawChart();
   }
 
-  const dt = new Date(data.timestamp || Date.now());
-  $("footer").textContent = "обновлено " + dt.toLocaleTimeString("ru-RU");
+  $("footer").textContent = "обновлено " + new Date(data.timestamp || Date.now()).toLocaleTimeString("ru-RU");
 }
 
-/* --------------------- График (SVG, одна серия) --------------------- */
+/* ------------------- График: ступенчатый «пиксельный» плот ------------------- */
 const chart = $("chart");
-const W = 900, H = 200, PAD_L = 46, PAD_R = 12, PAD_T = 14, PAD_B = 22;
+const W = 900, H = 210, PAD_L = 54, PAD_R = 10, PAD_T = 12, PAD_B = 24, STEP = 3;
 chart.setAttribute("viewBox", `0 0 ${W} ${H}`);
 let chartPoints = [];
+
+const snap = v => Math.round(v / STEP) * STEP;   // прижимаем всё к пиксельной сетке
 
 function drawChart() {
   if (history.length < 2) { chart.innerHTML = ""; return; }
@@ -315,38 +283,48 @@ function drawChart() {
   const signed = min < 0;
   if (signed) { min = Math.min(min, 0); max = Math.max(max, 0); }
   if (min === max) { min -= 1; max += 1; }
-  const range = max - min, padR = range * 0.12;
-  min -= padR; max += padR;
+  const pad = (max - min) * 0.12;
+  min -= pad; max += pad;
 
   const n = history.length;
-  const x = i => PAD_L + (i/(n-1)) * (W - PAD_L - PAD_R);
-  const y = v => PAD_T + (1 - (v - min)/(max - min)) * (H - PAD_T - PAD_B);
-  chartPoints = history.map((p,i) => ({ x:x(i), y:y(p.value), v:p.value, t:p.t }));
+  const x = i => snap(PAD_L + (i / (n - 1)) * (W - PAD_L - PAD_R));
+  const y = v => snap(PAD_T + (1 - (v - min) / (max - min)) * (H - PAD_T - PAD_B));
+  chartPoints = history.map((p, i) => ({ x:x(i), y:y(p.value), v:p.value, t:p.t }));
 
-  const linePath = chartPoints.map((p,i) => (i?"L":"M")+p.x.toFixed(1)+" "+p.y.toFixed(1)).join(" ");
-  const baseY = signed ? y(0) : (H - PAD_B);
-  const areaPath = `${linePath} L ${chartPoints[n-1].x.toFixed(1)} ${baseY.toFixed(1)} L ${chartPoints[0].x.toFixed(1)} ${baseY.toFixed(1)} Z`;
+  // Ступеньки: горизонталь до следующей точки, затем вертикаль — как на пиксельном плоттере.
+  let d = `M ${chartPoints[0].x} ${chartPoints[0].y}`;
+  for (let i = 1; i < n; i++) d += ` H ${chartPoints[i].x} V ${chartPoints[i].y}`;
+  const baseY = signed ? y(0) : H - PAD_B;
+  const area = `${d} V ${baseY} H ${chartPoints[0].x} Z`;
 
-  const ticks = [max, (max+min)/2, min];
   let grid = "";
-  ticks.forEach(tv => {
-    const yy = y(tv).toFixed(1);
-    grid += `<line x1="${PAD_L}" x2="${W-PAD_R}" y1="${yy}" y2="${yy}" stroke="var(--grid)" stroke-width="1"/>`;
-    grid += `<text x="${PAD_L-8}" y="${yy}" text-anchor="end" dominant-baseline="middle" fill="var(--muted)" font-size="11">${num(tv,1)}</text>`;
+  [max, (max + min) / 2, min].forEach(tv => {
+    const yy = y(tv);
+    grid += `<line x1="${PAD_L}" x2="${W - PAD_R}" y1="${yy}" y2="${yy}"
+      style="stroke:var(--edge)" stroke-width="2" stroke-dasharray="2 6"/>`;
+    grid += `<text x="${PAD_L - 10}" y="${yy + 4}" text-anchor="end" style="fill:var(--dim)"
+      font-size="11">${num(tv, 1)}</text>`;
   });
-  let zero = "";
-  if (signed) {
-    const zy = y(0).toFixed(1);
-    zero = `<line x1="${PAD_L}" x2="${W-PAD_R}" y1="${zy}" y2="${zy}" stroke="var(--baseline)" stroke-width="1.5"/>`;
-  }
-  const last = chartPoints[n-1];
+  const zero = signed ? `<line x1="${PAD_L}" x2="${W - PAD_R}" y1="${y(0)}" y2="${y(0)}"
+      style="stroke:var(--edge)" stroke-width="2"/>` : "";
+
+  const last = chartPoints[n - 1];
   chart.innerHTML = `
-    ${grid}${zero}
-    <path d="${areaPath}" fill="var(--series-fill)" stroke="none"/>
-    <path d="${linePath}" fill="none" stroke="var(--series-1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-    <circle cx="${last.x.toFixed(1)}" cy="${last.y.toFixed(1)}" r="4" fill="var(--series-1)" stroke="var(--surface)" stroke-width="2"/>
-    <line id="crosshair" x1="0" x2="0" y1="${PAD_T}" y2="${H-PAD_B}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3" style="opacity:0"/>
-    <circle id="hoverDot" r="4.5" fill="var(--series-1)" stroke="var(--surface)" stroke-width="2" style="opacity:0"/>`;
+    <defs>
+      <pattern id="dither" width="4" height="4" patternUnits="userSpaceOnUse">
+        <rect width="2" height="2" style="fill:var(--teal)" opacity=".30"/>
+        <rect x="2" y="2" width="2" height="2" style="fill:var(--teal)" opacity=".30"/>
+      </pattern>
+    </defs>
+    <g shape-rendering="crispEdges">
+      ${grid}${zero}
+      <path d="${area}" fill="url(#dither)" stroke="none"/>
+      <path d="${d}" fill="none" style="stroke:var(--teal)" stroke-width="3"/>
+      <rect x="${last.x - 3}" y="${last.y - 3}" width="6" height="6" style="fill:var(--teal)"/>
+      <line id="crosshair" x1="0" x2="0" y1="${PAD_T}" y2="${H - PAD_B}" style="stroke:var(--dim)"
+        stroke-width="2" stroke-dasharray="2 4" opacity="0"/>
+      <rect id="hoverDot" width="6" height="6" style="fill:var(--amber)" opacity="0"/>
+    </g>`;
 }
 
 const tooltip = $("tooltip");
@@ -357,30 +335,30 @@ function onMove(evt) {
   let best = chartPoints[0], bd = Infinity;
   for (const p of chartPoints) { const d = Math.abs(p.x - px); if (d < bd) { bd = d; best = p; } }
   const ch = $("crosshair"), hd = $("hoverDot");
-  if (ch) { ch.setAttribute("x1", best.x); ch.setAttribute("x2", best.x); ch.style.opacity = 1; }
-  if (hd) { hd.setAttribute("cx", best.x); hd.setAttribute("cy", best.y); hd.style.opacity = 1; }
+  if (ch) { ch.setAttribute("x1", best.x); ch.setAttribute("x2", best.x); ch.setAttribute("opacity", 1); }
+  if (hd) { hd.setAttribute("x", best.x - 3); hd.setAttribute("y", best.y - 3); hd.setAttribute("opacity", 1); }
   tooltip.style.opacity = 1;
   tooltip.style.left = (evt.clientX + 12) + "px";
-  tooltip.style.top  = (evt.clientY - 8) + "px";
-  const time = new Date(best.t).toLocaleTimeString("ru-RU");
-  tooltip.innerHTML = `<b>${fmt(best.v, chartMeta.unit)}</b><br><span style="color:var(--muted)">${time}</span>`;
+  tooltip.style.top = (evt.clientY - 10) + "px";
+  tooltip.innerHTML = `<b>${fmt(best.v, chartMeta.unit)}</b><br>
+    <span class="t-dim">${new Date(best.t).toLocaleTimeString("ru-RU")}</span>`;
 }
 function onLeave() {
   tooltip.style.opacity = 0;
   const ch = $("crosshair"), hd = $("hoverDot");
-  if (ch) ch.style.opacity = 0;
-  if (hd) hd.style.opacity = 0;
+  if (ch) ch.setAttribute("opacity", 0);
+  if (hd) hd.setAttribute("opacity", 0);
 }
 chart.addEventListener("mousemove", onMove);
 chart.addEventListener("mouseleave", onLeave);
-chart.addEventListener("touchmove", e => { if (e.touches[0]) onMove(e.touches[0]); }, {passive:true});
+chart.addEventListener("touchmove", e => { if (e.touches[0]) onMove(e.touches[0]); }, { passive:true });
 chart.addEventListener("touchend", onLeave);
 
 async function tick() {
   try {
     const resp = await fetch("/api/status?device_id=" + encodeURIComponent(DEVICE_ID));
     const data = await resp.json();
-    if (!resp.ok || data.error) { setConn(false, data.error || `HTTP ${resp.status}`); }
+    if (!resp.ok || data.error) setConn(false, data.error || `HTTP ${resp.status}`);
     else { setConn(true, null); render(data); }
   } catch (e) {
     setConn(false, "Сервер недоступен: " + e.message);
@@ -389,7 +367,9 @@ async function tick() {
   }
 }
 
-(async function init(){ await loadConfig(); tick(); })();
+$("logo").innerHTML = pixelBattery(2);
+$("socNum").innerHTML = pixelText("--%", { scale: 6 });
+(async function init() { await loadConfig(); tick(); })();
 </script>
 </body>
 </html>

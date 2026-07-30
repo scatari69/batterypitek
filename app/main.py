@@ -11,6 +11,7 @@ from pathlib import Path
 
 from fastapi import Body, Depends, FastAPI, Header, HTTPException, Query
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from . import demo, metrics, notifier
 from .store import store
@@ -29,6 +30,9 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="Battery Monitor", version="3.1.0", lifespan=lifespan)
+
+# Общая пиксельная тема страниц: /static/pixel.css и /static/pixel.js.
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # Кэш спецификаций по device_id.
 _spec_cache: dict[str, dict] = {}
