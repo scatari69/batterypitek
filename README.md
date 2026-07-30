@@ -58,17 +58,68 @@ DEMO_MODE=true docker compose up --build
    нужные и задайте им имена (или добавьте вручную по Device ID).
 6. **Сохраните**. Дашборд на <http://localhost:8000> сразу покажет батареи.
 
-Настройки сохраняются в `./data/settings.json` (том Docker) и переживают рестарт.
+Настройки сохраняются в именованном томе Docker `battery-data`
+(`/data/settings.json` внутри контейнера) и переживают рестарт.
 
-### Где взять реквизиты Tuya
+Где взять **Access ID / Secret** и **Device ID** — в разделе
+[«Настройка проекта в Tuya IoT Platform»](#настройка-проекта-в-tuya-iot-platform) ниже.
+
+---
+
+## Настройка проекта в Tuya IoT Platform
+
+Чтобы приложение видело батареи, нужен Cloud-проект на Tuya с сервисом **IoT Core**
+и привязанным аккаунтом приложения Smart Life / Tuya Smart.
+
+### 1. Создать проект
 
 1. Зарегистрируйтесь на <https://iot.tuya.com>.
-2. **Cloud → Development → Create Cloud Project** (метод разработки *Smart Home*),
-   регион — как в приложении Smart Life / Tuya Smart.
-3. Вкладка **Overview** → **Access ID** и **Access Secret**.
-4. **Devices → Link App Account** → отсканируйте QR-код приложением Smart Life.
-5. Проверьте, что для проекта включены API: *IoT Core* и *Authorization*
-   (**Service API**).
+2. **Cloud → Development → Create Cloud Project**:
+   - *Development Method* — **Smart Home** (даёт нужный набор API);
+   - *Data Center* (регион) — тот же, что у аккаунта в приложении Smart Life /
+     Tuya Smart. Это же значение идёт в `TUYA_API_ENDPOINT` (по умолчанию Европа).
+3. Вкладка **Overview** → скопируйте **Access ID** и **Access Secret**.
+
+### 2. Подключить нужные API
+
+Приложению достаточно одного основного сервиса:
+
+| API-сервис | Нужен | Зачем |
+|---|:---:|---|
+| **IoT Core** | ✅ обязательно | статус устройства, спецификации, инфо, список устройств |
+| **Authorization** | ✅ (обычно по умолчанию) | получение access-токена |
+| Device Status Notification | — | не нужен (приложение опрашивает само) |
+
+Проверить: **Cloud → Development → проект → Service API** — в списке должен быть
+**IoT Core**. Если его нет — `Go to Authorize` и добавьте.
+
+Используемые эндпоинты (все относятся к IoT Core): `/v1.0/token`,
+`/v1.0/devices/{id}/status`, `/v1.0/devices/{id}/specifications`,
+`/v1.0/devices/{id}`, `/v1.0/iot-01/associated-users/devices`.
+
+### 3. Привязать аккаунт и найти устройства
+
+1. **Devices → Link App Account** → отсканируйте QR-код приложением Smart Life
+   (без этого шага устройств в проекте не будет).
+2. **Devices → All Devices** → скопируйте **Device ID** нужного устройства
+   (или используйте автопоиск в панели `/admin` → «Найти в аккаунте»).
+
+### 4. Ввести реквизиты в приложение
+
+Access ID / Secret / регион — в панели **`/admin`** → «Проверить подключение» →
+«Найти в аккаунте». Либо через `.env` (`TUYA_ACCESS_ID`, `TUYA_ACCESS_KEY`,
+`TUYA_API_ENDPOINT`).
+
+### Триал IoT Core и частые ошибки
+
+- **IoT Core — бесплатный триал** (обычно ~1 месяц). Продление: **Cloud → Cloud
+  Services → IoT Core → Extend Trial**, заполнить короткую анкету → обычно +6 месяцев
+  (кнопка появляется ближе к концу срока). Когда и продлённый срок выйдет — платный
+  план или новый проект (Access ID/Secret сменятся — впишите новые в `/admin`).
+- Ошибка Tuya **`code 1106` / `permission deny` / `No permissions`** — почти всегда:
+  не авторизован IoT Core, истёк триал, либо не привязан аккаунт (шаг 3).
+- Токен получаете, но **устройств не видно** — регион `TUYA_API_ENDPOINT` не совпадает
+  с регионом аккаунта.
 
 ---
 
