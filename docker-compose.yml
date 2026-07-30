@@ -1,9 +1,9 @@
 services:
   battery-monitor:
     build: .
-    image: battery-monitor:latest
     container_name: battery-monitor
     restart: unless-stopped
+    pull_policy: build   # собирать локально, не пытаться тянуть из реестра
     ports:
       - "8000:8000"
     env_file:
