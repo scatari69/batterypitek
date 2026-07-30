@@ -12,8 +12,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
 
-# Непривилегированный пользователь.
-RUN useradd --create-home appuser
+# Непривилегированный пользователь; /data должен принадлежать ему
+# (именованный том Docker инициализируется с этими правами).
+RUN useradd --create-home appuser \
+    && mkdir -p /data \
+    && chown appuser:appuser /data
 USER appuser
 
 EXPOSE 8000

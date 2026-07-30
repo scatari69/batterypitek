@@ -56,10 +56,16 @@ class Store:
                 self._save_unlocked()
 
     def _save_unlocked(self):
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = self.path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(self._data, ensure_ascii=False, indent=2), encoding="utf-8")
-        os.replace(tmp, self.path)
+        try:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = self.path.with_suffix(".tmp")
+            tmp.write_text(json.dumps(self._data, ensure_ascii=False, indent=2), encoding="utf-8")
+            os.replace(tmp, self.path)
+        except OSError as exc:
+            # Не роняем приложение, если каталог настроек недоступен для записи.
+            # Настройки продолжат действовать до перезапуска, но не сохранятся на диск.
+            print(f"[store] ВНИМАНИЕ: не удалось сохранить настройки в {self.path}: {exc}. "
+                  f"Проверьте права на каталог DATA_DIR.", flush=True)
 
     # ------------------------------------------------------------ Getters --
     @property

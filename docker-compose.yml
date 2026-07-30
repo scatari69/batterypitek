@@ -11,8 +11,9 @@ services:
       - path: .env
         required: false
     volumes:
-      # Постоянные настройки из админ-панели (settings.json) — сохраняются между рестартами
-      - ./data:/data
+      # Постоянные настройки из админ-панели (settings.json). Именованный том, чтобы
+      # права не зависели от хоста (контейнер работает под непривилегированным пользователем).
+      - battery-data:/data
       # Необязательный bootstrap-список устройств (config/devices.yml.example)
       - ./config:/config:ro
     environment:
@@ -27,3 +28,6 @@ services:
       DEVICES_CONFIG: ${DEVICES_CONFIG:-/config/devices.yml}
       POLL_INTERVAL: ${POLL_INTERVAL:-10}
       DEMO_MODE: ${DEMO_MODE:-false}
+
+volumes:
+  battery-data:
