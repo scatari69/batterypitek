@@ -37,9 +37,6 @@
   .row:focus-visible { outline-offset:calc(-1*var(--px)); }
 
   .name b { display:block; font-size:14px; font-weight:700; line-height:1.3; }
-  .name i { display:block; font-style:normal; font-size:10.5px; color:var(--dim);
-    letter-spacing:.04em; margin-top:2px;
-    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
   .soc { text-align:right; line-height:0; }
   .soc .dash { font-size:16px; color:var(--dim); line-height:1; }
@@ -136,7 +133,7 @@ function etaCell(dev) {
 
 function row(dev) {
   const href = `/device/${encodeURIComponent(dev.id)}`;
-  const name = `<span class="name"><b>${escapeHtml(dev.name)}</b><i>${escapeHtml(dev.id)}</i></span>`;
+  const name = `<span class="name"><b>${escapeHtml(dev.name)}</b></span>`;
 
   if (!dev.online) {
     return `<a class="row offline" href="${href}">
@@ -172,7 +169,7 @@ async function loadConfig() {
     pollInterval = Math.max(10, c.poll_interval || 15);
     $("demoBadge").hidden = !c.demo_mode;
     const n = (c.devices || []).length;
-    $("sub").textContent = `${n} ${plural(n, "устройство", "устройства", "устройств")} · ${new URL(c.endpoint).host}`;
+    $("sub").textContent = `${n} ${plural(n, "устройство", "устройства", "устройств")}`;
   } catch (e) { $("sub").textContent = "сервер не отвечает"; }
 }
 
