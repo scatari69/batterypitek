@@ -96,27 +96,30 @@ function fmtNum(v, unit) {
 
 function fmtDuration(min) {
   if (min == null || !isFinite(min)) return null;
-  if (min < 1) return "< 1 мин";
+  if (min < 1) return BMI18n.t("dur.lessMin");
   const d = Math.floor(min / 1440), h = Math.floor((min % 1440) / 60), m = Math.round(min % 60);
-  if (d > 0) return `${d} дн ${h} ч`;
-  if (h > 0) return `${h} ч ${m} мин`;
-  return `${m} мин`;
+  if (d > 0) return BMI18n.t("dur.dh", { d, h });
+  if (h > 0) return BMI18n.t("dur.hm", { h, m });
+  return BMI18n.t("dur.m", { m });
 }
 
-function plural(n, one, few, many) {
-  const m10 = n % 10, m100 = n % 100;
-  if (m10 === 1 && m100 !== 11) return one;
-  if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return few;
-  return many;
+/* Время суток в формате текущего языка. */
+function fmtTime(ts) {
+  return new Date(ts || Date.now()).toLocaleTimeString(BMI18n.locale());
 }
 
 /* Уровень заряда -> класс цвета (ok / warn / low). */
 function socLevel(p) { return p < 20 ? "low" : p < 50 ? "warn" : "ok"; }
 
-/* Режим работы: спрайт, подпись, цвет. */
+/* Режим работы: спрайт и цвет; подпись — pxState(). */
 const PX_STATE = {
-  charging:    { sprite:"up",   label:"Заряд",    cls:"t-charge" },
-  discharging: { sprite:"down", label:"Разряд",   cls:"t-ok" },
-  idle:        { sprite:"idle", label:"Ожидание", cls:"t-dim" },
-  unknown:     { sprite:"idle", label:"—",        cls:"t-dim" },
+  charging:    { sprite:"up",   cls:"t-charge" },
+  discharging: { sprite:"down", cls:"t-ok" },
+  idle:        { sprite:"idle", cls:"t-dim" },
+  unknown:     { sprite:"idle", cls:"t-dim" },
 };
+
+function pxState(state) {
+  const key = PX_STATE[state] ? state : "unknown";
+  return { ...PX_STATE[key], label: BMI18n.t("state." + key) };
+}

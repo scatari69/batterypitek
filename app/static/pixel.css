@@ -180,6 +180,10 @@ a { color:var(--teal); }
 .theme-pick:hover { color:var(--ink); }
 .theme-pick:focus-visible { outline-offset:calc(-1*var(--px)); }
 
+/* В строке статуса (выбор языка в футере) список ниже — под высоту строки. */
+.statusbar .theme-pick { padding:4px 22px 4px 8px;
+  background-position:calc(100% - 12px) 11px, calc(100% - 6px) 11px; }
+
 /* --------------------------------------------------------- Шкала заряда -- */
 /* Десять сегментов: заливка идёт ступенями, поверх — «прорези» между делениями. */
 .batt { display:flex; align-items:center; gap:var(--px); }

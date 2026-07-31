@@ -8,7 +8,10 @@
 import math
 import time
 
-# Виртуальные устройства для демо-режима.
+from . import i18n
+
+# Виртуальные устройства для демо-режима. Имя здесь — запасное: показываем
+# перевод по ключу demo.<id> (см. app/i18n.py), см. device_name().
 DEMO_DEVICES = [
     {"id": "demo-garage", "name": "Гараж — LiFePO4 100Ah",
      "capacity": 100.0, "base_soc": 72, "phase": 0.0, "mode": "discharge"},
@@ -44,6 +47,16 @@ DEMO_SPEC = {
          "values": '{"unit":"Ah","min":0,"max":1000000,"scale":2,"step":1}'},
     ],
 }
+
+
+def device_name(device_id: str, lang: str | None = None) -> str:
+    """Имя виртуального устройства на нужном языке."""
+    key = f"demo.{device_id}"
+    name = i18n.t(lang, key)
+    if name != key:
+        return name
+    cfg = _BY_ID.get(device_id)
+    return cfg["name"] if cfg else device_id
 
 
 def _clamp(v, lo, hi):

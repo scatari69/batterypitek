@@ -7,6 +7,8 @@
 Антиспам: повторное сообщение по тому же поводу не отправляется, пока
 показатель не вернётся в норму (либо пока не истечёт интервал повтора, если он
 задан в настройках). При возврате в норму можно получить сообщение «отбой».
+
+Язык сообщений — общий язык панели (settings.json), браузера у них нет.
 """
 
 import threading
@@ -15,7 +17,7 @@ from collections import deque
 
 import requests
 
-from . import metrics
+from . import i18n, metrics
 
 API_BASE = "https://api.telegram.org"
 TIMEOUT = 15
@@ -30,44 +32,45 @@ class TelegramError(Exception):
 
 
 # ------------------------------------------------------------------ Bot API --
-def _call(token: str, method: str, payload: dict | None = None):
+def _call(token: str, method: str, payload: dict | None = None, lang: str | None = None):
     token = (token or "").strip()
     if not token:
-        raise TelegramError("Не задан токен бота")
+        raise TelegramError(i18n.t(lang, "tg.no_token"))
     try:
         resp = requests.post(f"{API_BASE}/bot{token}/{method}", json=payload or {}, timeout=TIMEOUT)
     except requests.RequestException as exc:
-        raise TelegramError(f"Сеть недоступна: {exc}") from exc
+        raise TelegramError(i18n.t(lang, "tg.net", msg=exc)) from exc
     try:
         data = resp.json()
     except ValueError as exc:
-        raise TelegramError(f"Некорректный ответ Telegram (HTTP {resp.status_code})") from exc
+        raise TelegramError(i18n.t(lang, "tg.bad_response", code=resp.status_code)) from exc
     if not data.get("ok"):
-        raise TelegramError(data.get("description") or f"Ошибка Telegram (HTTP {resp.status_code})")
+        raise TelegramError(data.get("description")
+                            or i18n.t(lang, "tg.api_error", code=resp.status_code))
     return data.get("result")
 
 
-def get_me(token: str) -> dict:
-    return _call(token, "getMe") or {}
+def get_me(token: str, lang: str | None = None) -> dict:
+    return _call(token, "getMe", lang=lang) or {}
 
 
-def send_message(token: str, chat_id, text: str):
+def send_message(token: str, chat_id, text: str, lang: str | None = None):
     chat_id = str(chat_id or "").strip()
     if not chat_id:
-        raise TelegramError("Не задан ID чата")
+        raise TelegramError(i18n.t(lang, "tg.no_chat"))
     return _call(token, "sendMessage", {
         "chat_id": chat_id,
         "text": text,
         "disable_web_page_preview": True,
-    })
+    }, lang=lang)
 
 
-def discover_chats(token: str) -> list[dict]:
+def discover_chats(token: str, lang: str | None = None) -> list[dict]:
     """Чаты из недавних апдейтов бота — чтобы подставить chat_id в админке.
 
     Работает, если боту недавно писали и апдейты ещё не забраны вебхуком.
     """
-    updates = _call(token, "getUpdates", {"limit": 100, "timeout": 0}) or []
+    updates = _call(token, "getUpdates", {"limit": 100, "timeout": 0}, lang=lang) or []
     chats: dict = {}
     for upd in updates:
         for key in ("message", "edited_message", "channel_post", "my_chat_member"):
@@ -82,17 +85,17 @@ def discover_chats(token: str) -> list[dict]:
 
 
 # ------------------------------------------------------------ Форматирование --
-def fmt_minutes(minutes) -> str:
+def fmt_minutes(minutes, lang: str | None = None) -> str:
     if minutes is None:
-        return "—"
+        return i18n.t(lang, "dur.dash")
     total = int(round(minutes))
     if total < 60:
-        return f"{total} мин"
+        return i18n.t(lang, "dur.m", m=total)
     hours, mins = divmod(total, 60)
     if hours >= 24:
         days, hours = divmod(hours, 24)
-        return f"{days} дн {hours} ч"
-    return f"{hours} ч {mins:02d} мин"
+        return i18n.t(lang, "dur.dh", d=days, h=hours)
+    return i18n.t(lang, "dur.hm", h=hours, m=mins)
 
 
 def _num(value) -> str:
@@ -102,19 +105,22 @@ def _num(value) -> str:
     return text if text not in ("", "-") else "0"
 
 
-def _details(data: dict) -> str:
+def _details(data: dict, lang: str | None = None) -> str:
     """Строка с ключевыми показаниями: напряжение · ток · мощность."""
     primary = data.get("primary") or {}
     parts = []
     for role in ("voltage", "current", "power"):
         m = primary.get(role)
         if m and isinstance(m.get("value"), (int, float)):
-            parts.append(f"{m['label']}: {_num(m['value'])} {m.get('unit') or ''}".strip())
+            label = i18n.t(lang, f"role.{role}")
+            parts.append(f"{label}: {_num(m['value'])} {m.get('unit') or ''}".strip())
     return " · ".join(parts)
 
 
-STATE_LABELS = {"charging": "заряжается", "discharging": "разряжается",
-                "idle": "ожидание", "unknown": "режим неизвестен"}
+def _state_label(state, lang: str | None = None) -> str:
+    key = f"state.{state}"
+    text = i18n.t(lang, key)
+    return "" if text == key else text
 
 
 # ---------------------------------------------------------------- Наблюдатель --
@@ -164,27 +170,28 @@ class Watcher(threading.Thread):
     def _cycle(self, cfg: dict):
         soc_limit = float(cfg.get("soc_threshold") or 0)
         eta_limit = float(cfg.get("eta_threshold") or 0)
+        lang = getattr(self._store, "language", i18n.LANG_DEFAULT)
         known: set[str] = set()
 
         for dev in self._store.devices():
             known.add(dev.id)
+            online_text = i18n.t(lang, "note.online", name=dev.name)
             try:
                 data = self._fetch(dev.id)
             except Exception as exc:  # noqa: BLE001 — устройство недоступно
                 self._rule(cfg, dev.id, "offline", bool(cfg.get("notify_offline")), True,
-                           f"⚠️ {dev.name}: устройство недоступно\n{exc}",
-                           f"✅ {dev.name}: связь восстановлена")
+                           i18n.t(lang, "note.offline", name=dev.name, msg=exc), online_text)
                 # Пока данных нет — пороги не оцениваем, состояния не трогаем.
                 continue
 
             self._rule(cfg, dev.id, "offline", bool(cfg.get("notify_offline")), False,
-                       "", f"✅ {dev.name}: связь восстановлена")
+                       "", online_text)
 
-            prefix = "🧪 (демо) " if data.get("demo") else ""
+            prefix = i18n.t(lang, "note.demo") if data.get("demo") else ""
             soc_m = (data.get("primary") or {}).get("soc")
             soc = soc_m.get("value") if soc_m and isinstance(soc_m.get("value"), (int, float)) else None
-            details = _details(data)
-            state = STATE_LABELS.get(data.get("state"), "")
+            details = _details(data, lang)
+            state = _state_label(data.get("state"), lang)
 
             # --- порог заряда ---
             low_soc = soc is not None and soc <= soc_limit
@@ -195,9 +202,10 @@ class Watcher(threading.Thread):
                     low_soc = True
             self._rule(
                 cfg, dev.id, "soc", bool(cfg.get("notify_low_soc")), low_soc,
-                f"{prefix}🪫 {dev.name}: заряд {_num(soc)}% — ниже порога {_num(soc_limit)}%"
+                prefix + i18n.t(lang, "note.low_soc", name=dev.name,
+                                soc=_num(soc), limit=_num(soc_limit))
                 + (f"\n{state}" if state else "") + (f"\n{details}" if details else ""),
-                f"{prefix}🔋 {dev.name}: заряд восстановился до {_num(soc)}%",
+                prefix + i18n.t(lang, "note.soc_ok", name=dev.name, soc=_num(soc)),
             )
 
             # --- время до достижения порога ---
@@ -216,12 +224,13 @@ class Watcher(threading.Thread):
                     low_eta = True
             self._rule(
                 cfg, dev.id, "eta", bool(cfg.get("notify_low_eta")), low_eta,
-                f"{prefix}⏳ {dev.name}: до {_num(soc_limit)}% осталось ~{fmt_minutes(minutes)}"
-                f" (порог {_num(eta_limit)} мин)"
-                + (f"\nЗаряд {_num(soc)}%" if soc is not None else "")
+                prefix + i18n.t(lang, "note.low_eta", name=dev.name, limit=_num(soc_limit),
+                                eta=fmt_minutes(minutes, lang), threshold=_num(eta_limit))
+                + ("\n" + i18n.t(lang, "note.soc_line", soc=_num(soc)) if soc is not None else "")
                 + (f" · {details}" if details else ""),
-                f"{prefix}✅ {dev.name}: запас времени в норме"
-                + (f" (~{fmt_minutes(minutes)} до {_num(soc_limit)}%)" if eta_ok else ""),
+                prefix + i18n.t(lang, "note.eta_ok", name=dev.name)
+                + (i18n.t(lang, "note.eta_ok_tail", eta=fmt_minutes(minutes, lang),
+                          limit=_num(soc_limit)) if eta_ok else ""),
             )
 
         # Забываем состояния устройств, которых больше нет в списке.
@@ -254,8 +263,9 @@ class Watcher(threading.Thread):
 
     # --- отправка + журнал ---
     def _send(self, cfg: dict, text: str) -> bool:
+        lang = getattr(self._store, "language", i18n.LANG_DEFAULT)
         try:
-            send_message(cfg.get("bot_token", ""), cfg.get("chat_id", ""), text)
+            send_message(cfg.get("bot_token", ""), cfg.get("chat_id", ""), text, lang=lang)
         except TelegramError as exc:
             self._note(text, False, str(exc))
             print(f"[notifier] не отправлено: {exc}", flush=True)

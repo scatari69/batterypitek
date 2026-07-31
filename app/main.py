@@ -13,7 +13,7 @@ from fastapi import Body, Depends, FastAPI, Header, HTTPException, Query
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import demo, metrics, notifier
+from . import demo, i18n, metrics, notifier
 from .store import store
 from .tuya_client import TuyaError
 
@@ -41,15 +41,20 @@ _SPEC_TTL = 3600
 
 
 # ------------------------------------------------------------ Вспомогательное --
+def req_lang(x_bm_lang: str | None = Header(default=None)) -> str:
+    """Язык ответа: выбор браузера (заголовок от app/static/i18n.js), иначе общий."""
+    return i18n.normalize(x_bm_lang) or store.language
+
+
 def _default_device_id() -> str:
     devs = store.devices()
     return devs[0].id if devs else ""
 
 
-def _require_device(device_id: str) -> str:
+def _require_device(device_id: str, lang: str | None = None) -> str:
     device_id = device_id or _default_device_id()
     if not device_id or device_id not in store.device_map():
-        raise HTTPException(status_code=404, detail="Неизвестное устройство")
+        raise HTTPException(status_code=404, detail=i18n.t(lang, "err.unknown_device"))
     return device_id
 
 
@@ -74,7 +79,7 @@ def _get_specifications(device_id: str):
     return cached["data"]
 
 
-def _fetch_normalized(device_id: str) -> dict:
+def _fetch_normalized(device_id: str, lang: str | None = None) -> dict:
     if store.use_demo:
         status = demo.demo_status(device_id)
         spec = demo.demo_specifications(device_id)
@@ -93,7 +98,7 @@ def _fetch_normalized(device_id: str) -> dict:
     data = metrics.normalize(status, spec)
     data["eta_30"] = metrics.estimate_time_to_pct(data, 30)
     data["id"] = device_id
-    dev = store.device_map().get(device_id)
+    dev = store.device_map(lang).get(device_id)
     data["name"] = dev.name if dev else device_id
     data["online"] = True
     data["timestamp"] = int(time.time() * 1000)
@@ -105,7 +110,8 @@ def _fetch_normalized(device_id: str) -> dict:
 watcher = notifier.Watcher(store=store, fetch=_fetch_normalized)
 
 
-def require_admin(authorization: str | None = Header(default=None)) -> bool:
+def require_admin(authorization: str | None = Header(default=None),
+                  lang: str = Depends(req_lang)) -> bool:
     """Гейт для админ-эндпоинтов. Если пароль не задан — доступ открыт (с предупреждением в UI)."""
     if not store.auth_enabled:
         return True
@@ -113,7 +119,7 @@ def require_admin(authorization: str | None = Header(default=None)) -> bool:
     if authorization and authorization.lower().startswith("bearer "):
         token = authorization[7:].strip()
     if not store.verify_token(token):
-        raise HTTPException(status_code=401, detail="Требуется авторизация")
+        raise HTTPException(status_code=401, detail=i18n.t(lang, "err.auth_required"))
     return True
 
 
@@ -124,8 +130,8 @@ def index():
 
 
 @app.get("/device/{device_id}")
-def device_page(device_id: str):
-    _require_device(device_id)
+def device_page(device_id: str, lang: str = Depends(req_lang)):
+    _require_device(device_id, lang)
     return FileResponse(STATIC_DIR / "device.html")
 
 
@@ -136,23 +142,24 @@ def admin_page():
 
 # ---------------------------------------------------------------- Публичный API --
 @app.get("/api/config")
-def api_config():
+def api_config(lang: str = Depends(req_lang)):
     return {
         "poll_interval": store.poll_interval,
         "demo_mode": store.use_demo,
         "endpoint": store.endpoint,
         "theme": store.theme,
-        "devices": [{"id": d.id, "name": d.name} for d in store.devices()],
+        "language": store.language,
+        "devices": [{"id": d.id, "name": d.name} for d in store.devices(lang)],
     }
 
 
 @app.get("/api/devices")
-def api_devices():
+def api_devices(lang: str = Depends(req_lang)):
     out = []
-    for dev in store.devices():
+    for dev in store.devices(lang):
         item = {"id": dev.id, "name": dev.name, "online": True, "error": None}
         try:
-            data = _fetch_normalized(dev.id)
+            data = _fetch_normalized(dev.id, lang)
             primary = data["primary"]
             soc, volt, cur = primary.get("soc"), primary.get("voltage"), primary.get("current")
             eta = data.get("eta_30") or {}
@@ -169,29 +176,29 @@ def api_devices():
         except TuyaError as exc:
             item.update(online=False, error=str(exc))
         except Exception as exc:  # noqa: BLE001
-            item.update(online=False, error=f"Ошибка: {exc}")
+            item.update(online=False, error=i18n.t(lang, "err.generic", msg=exc))
         out.append(item)
     return {"devices": out, "timestamp": int(time.time() * 1000), "demo": store.use_demo}
 
 
 @app.get("/api/status")
-def api_status(device_id: str = Query(default="")):
-    did = _require_device(device_id)
+def api_status(device_id: str = Query(default=""), lang: str = Depends(req_lang)):
+    did = _require_device(device_id, lang)
     try:
-        return JSONResponse(_fetch_normalized(did))
+        return JSONResponse(_fetch_normalized(did, lang))
     except TuyaError as exc:
         return JSONResponse({"error": str(exc), "online": False, "id": did,
                              "timestamp": int(time.time() * 1000)}, status_code=502)
     except Exception as exc:  # noqa: BLE001
-        return JSONResponse({"error": f"Внутренняя ошибка: {exc}", "online": False, "id": did,
-                             "timestamp": int(time.time() * 1000)}, status_code=500)
+        return JSONResponse({"error": i18n.t(lang, "err.internal", msg=exc), "online": False,
+                             "id": did, "timestamp": int(time.time() * 1000)}, status_code=500)
 
 
 @app.get("/api/raw")
-def api_raw(device_id: str = Query(default="")):
+def api_raw(device_id: str = Query(default=""), lang: str = Depends(req_lang)):
     """Все источники DP для диагностики: /v1.0 status и specifications,
     а также Thing-модель (v2.0), где обычно и лежат заряд/ёмкость."""
-    did = _require_device(device_id)
+    did = _require_device(device_id, lang)
     if store.use_demo:
         return {"status": demo.demo_status(did),
                 "specifications": demo.demo_specifications(did)}
@@ -220,12 +227,12 @@ def healthz():
 
 # ------------------------------------------------------------------- Админ API --
 @app.post("/api/admin/login")
-def admin_login(payload: dict = Body(...)):
+def admin_login(payload: dict = Body(...), lang: str = Depends(req_lang)):
     if not store.auth_enabled:
         return {"ok": True, "token": "", "auth_enabled": False}
     if store.verify_password(str(payload.get("password", ""))):
         return {"ok": True, "token": store.make_token(), "auth_enabled": True}
-    raise HTTPException(status_code=401, detail="Неверный пароль")
+    raise HTTPException(status_code=401, detail=i18n.t(lang, "admin.wrong_password"))
 
 
 @app.get("/api/admin/settings")
@@ -237,7 +244,7 @@ def admin_get_settings(_: bool = Depends(require_admin)):
 def admin_save_settings(payload: dict = Body(...), _: bool = Depends(require_admin)):
     patch: dict = {}
     for key in ("access_id", "endpoint", "demo_mode", "poll_interval", "devices", "telegram",
-                "theme"):
+                "theme", "language"):
         if key in payload:
             patch[key] = payload[key]
     if payload.get("access_key"):
@@ -266,31 +273,32 @@ def admin_save_settings(payload: dict = Body(...), _: bool = Depends(require_adm
 
 
 @app.post("/api/admin/test-connection")
-def admin_test_connection(payload: dict = Body(default={}), _: bool = Depends(require_admin)):
+def admin_test_connection(payload: dict = Body(default={}), _: bool = Depends(require_admin),
+                          lang: str = Depends(req_lang)):
     access_id = str(payload.get("access_id") or store.access_id).strip()
     access_key = str(payload.get("access_key") or "").strip() or store.access_key
     endpoint = str(payload.get("endpoint") or store.endpoint).strip()
     if not access_id or not access_key:
-        return {"ok": False, "message": "Укажите Access ID и Access Secret"}
+        return {"ok": False, "message": i18n.t(lang, "admin.need_creds")}
     try:
         client = store.build_client(access_id, access_key, endpoint)
         client._get_token(force=True)
     except TuyaError as exc:
         return {"ok": False, "message": str(exc)}
     except Exception as exc:  # noqa: BLE001
-        return {"ok": False, "message": f"Ошибка соединения: {exc}"}
+        return {"ok": False, "message": i18n.t(lang, "admin.conn_error", msg=exc)}
     try:
         devs = client.get_associated_devices()
-        return {"ok": True, "message": f"Подключение успешно. Устройств в аккаунте: {len(devs)}",
+        return {"ok": True, "message": i18n.t(lang, "admin.conn_ok", n=len(devs)),
                 "device_count": len(devs)}
     except TuyaError as exc:
-        return {"ok": True, "message": f"Токен получен, но список устройств недоступен: {exc}"}
+        return {"ok": True, "message": i18n.t(lang, "admin.conn_token_only", msg=exc)}
 
 
 @app.get("/api/admin/discover")
-def admin_discover(_: bool = Depends(require_admin)):
+def admin_discover(_: bool = Depends(require_admin), lang: str = Depends(req_lang)):
     if not store.has_credentials():
-        raise HTTPException(status_code=400, detail="Сначала укажите и сохраните реквизиты Tuya")
+        raise HTTPException(status_code=400, detail=i18n.t(lang, "admin.save_creds_first"))
     client = store.build_client(store.access_id, store.access_key, store.endpoint)
     try:
         devs = client.get_associated_devices()
@@ -304,12 +312,13 @@ def admin_discover(_: bool = Depends(require_admin)):
 
 
 @app.post("/api/admin/password")
-def admin_password(payload: dict = Body(...), _: bool = Depends(require_admin)):
+def admin_password(payload: dict = Body(...), _: bool = Depends(require_admin),
+                   lang: str = Depends(req_lang)):
     new = str(payload.get("new", "")).strip()
     if len(new) < 4:
-        raise HTTPException(status_code=400, detail="Пароль слишком короткий (минимум 4 символа)")
+        raise HTTPException(status_code=400, detail=i18n.t(lang, "admin.pw_too_short"))
     if store.auth_enabled and not store.verify_password(str(payload.get("current", ""))):
-        raise HTTPException(status_code=403, detail="Неверный текущий пароль")
+        raise HTTPException(status_code=403, detail=i18n.t(lang, "admin.pw_wrong_current"))
     store.set_password(new)
     return {"ok": True, "token": store.make_token()}
 
@@ -324,40 +333,40 @@ def _tg_creds(payload: dict) -> tuple[str, str]:
 
 
 @app.post("/api/admin/telegram/test")
-def admin_telegram_test(payload: dict = Body(default={}), _: bool = Depends(require_admin)):
-    """Отправляет тестовое сообщение — можно проверить ещё до сохранения настроек."""
+def admin_telegram_test(payload: dict = Body(default={}), _: bool = Depends(require_admin),
+                        lang: str = Depends(req_lang)):
+    """Отправляет тестовое сообщение — можно проверить ещё до сохранения настроек.
+
+    Само сообщение уходит на общем языке панели: так же, как настоящие уведомления.
+    """
     token, chat_id = _tg_creds(payload)
     if not token:
-        return {"ok": False, "message": "Укажите токен бота"}
+        return {"ok": False, "message": i18n.t(lang, "tg.need_token")}
     if not chat_id:
-        return {"ok": False, "message": "Укажите ID чата"}
+        return {"ok": False, "message": i18n.t(lang, "tg.need_chat")}
     try:
-        bot = notifier.get_me(token)
-        notifier.send_message(
-            token, chat_id,
-            "✅ Battery Monitor: проверка связи.\n"
-            "Уведомления о заряде батарей будут приходить в этот чат.")
+        bot = notifier.get_me(token, lang=lang)
+        notifier.send_message(token, chat_id, i18n.t(store.language, "tg.test_text"), lang=lang)
     except notifier.TelegramError as exc:
         return {"ok": False, "message": str(exc)}
-    name = bot.get("username") or bot.get("first_name") or "бот"
-    return {"ok": True, "message": f"Сообщение отправлено ботом @{name}"}
+    name = bot.get("username") or bot.get("first_name") or i18n.t(lang, "tg.bot")
+    return {"ok": True, "message": i18n.t(lang, "tg.test_sent", name=name)}
 
 
 @app.post("/api/admin/telegram/chats")
-def admin_telegram_chats(payload: dict = Body(default={}), _: bool = Depends(require_admin)):
+def admin_telegram_chats(payload: dict = Body(default={}), _: bool = Depends(require_admin),
+                         lang: str = Depends(req_lang)):
     """Подсказка по chat_id: чаты, из которых боту недавно писали."""
     token, _chat = _tg_creds(payload)
     if not token:
-        return {"ok": False, "message": "Укажите токен бота", "chats": []}
+        return {"ok": False, "message": i18n.t(lang, "tg.need_token"), "chats": []}
     try:
-        chats = notifier.discover_chats(token)
+        chats = notifier.discover_chats(token, lang=lang)
     except notifier.TelegramError as exc:
         return {"ok": False, "message": str(exc), "chats": []}
     if not chats:
-        return {"ok": False, "chats": [],
-                "message": "Чаты не найдены. Напишите боту любое сообщение (или добавьте его "
-                           "в группу) и повторите."}
-    return {"ok": True, "chats": chats, "message": f"Найдено чатов: {len(chats)}"}
+        return {"ok": False, "chats": [], "message": i18n.t(lang, "tg.no_chats")}
+    return {"ok": True, "chats": chats, "message": i18n.t(lang, "tg.chats_found", n=len(chats))}
 
 
 @app.get("/api/admin/telegram/log")

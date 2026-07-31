@@ -11,13 +11,13 @@ import secrets
 import threading
 from pathlib import Path
 
-from . import auth, demo
+from . import auth, demo, i18n
 from .config import settings
 from .devices import Device, load_devices
 from .tuya_client import TuyaClient
 
 _ALLOWED_UPDATE = {"access_id", "access_key", "endpoint", "poll_interval", "demo_mode", "devices",
-                   "telegram", "theme"}
+                   "telegram", "theme", "language"}
 
 # Оформление по умолчанию: набор тем + режим (см. app/static/theme.js).
 # Браузер может переопределить выбор локально — тогда эта настройка на него не влияет.
@@ -151,6 +151,16 @@ class Store:
         return THEME_DEFAULT
 
     @property
+    def language(self) -> str:
+        """Язык по умолчанию: его видят браузеры без своего выбора, на нём же
+        уходят уведомления в Telegram."""
+        for value in (self._data.get("language"), settings.language):
+            code = i18n.normalize(value)
+            if code:
+                return code
+        return i18n.LANG_DEFAULT
+
+    @property
     def telegram(self) -> dict:
         return normalize_telegram(self._data.get("telegram"))
 
@@ -164,15 +174,18 @@ class Store:
     def use_demo(self) -> bool:
         return self._effective_demo()
 
-    def devices(self):
+    def devices(self, lang: str | None = None):
+        """Список устройств. В демо-режиме имена переводятся: lang — язык ответа,
+        по умолчанию общий язык панели."""
         if self.use_demo:
-            return [Device(d["id"], d["name"]) for d in demo.DEMO_DEVICES]
+            code = lang or self.language
+            return [Device(d["id"], demo.device_name(d["id"], code)) for d in demo.DEMO_DEVICES]
         if "devices" in self._data:
             return [Device(d["id"], d.get("name") or d["id"]) for d in self._data["devices"]]
         return load_devices()
 
-    def device_map(self):
-        return {d.id: d for d in self.devices()}
+    def device_map(self, lang: str | None = None):
+        return {d.id: d for d in self.devices(lang)}
 
     # ------------------------------------------------------------- Client --
     def client(self):
@@ -226,6 +239,11 @@ class Store:
                     continue
                 if key == "theme" and value not in THEMES:
                     continue
+                if key == "language":
+                    code = i18n.normalize(value)
+                    if not code:
+                        continue
+                    value = code
                 self._data[key] = value
             self._client = None  # пересобрать клиент под новые реквизиты
             self._save_unlocked()
@@ -255,6 +273,7 @@ class Store:
             "demo_mode": self.demo_mode,
             "use_demo": self.use_demo,
             "theme": self.theme,
+            "language": self.language,
             "has_key": bool(ak),
             "key_hint": ("••••" + ak[-4:]) if len(ak) >= 4 else ("••••" if ak else ""),
             # Список для редактора — сохранённая конфигурация, а не демо-устройства.

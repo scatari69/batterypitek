@@ -3,9 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Battery Monitor · устройство</title>
+<title data-i18n="device.title">Battery Monitor</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'><g fill='%234fe3c1'><rect x='0' y='1' width='6' height='1'/><rect x='0' y='6' width='6' height='1'/><rect x='0' y='2' width='1' height='4'/><rect x='5' y='2' width='1' height='4'/><rect x='6' y='3' width='1' height='2'/><rect x='1' y='3' width='3' height='2'/></g></svg>">
 <link rel="stylesheet" href="/static/pixel.css">
+<script src="/static/i18n.js"></script>
 <script src="/static/theme.js"></script>
 <style>
   .page { max-width:1080px; margin:0 auto; padding:26px 20px 40px; }
@@ -83,25 +84,26 @@
 </head>
 <body>
 <div class="page">
-  <a class="back" href="/">← Все устройства</a>
+  <a class="back" href="/" data-i18n="device.back">← Все устройства</a>
 
   <header class="px-box raised">
     <span class="logo" id="logo"></span>
     <div>
-      <h1 id="devName">Устройство</h1>
-      <div class="sub label" id="devsub">инициализация…</div>
+      <h1 id="devName" data-i18n="device.heading">Устройство</h1>
+      <div class="sub label" id="devsub" data-i18n="common.init">инициализация…</div>
     </div>
     <span class="spacer"></span>
-    <span class="badge" id="demoBadge" hidden>Демо</span>
+    <span class="badge" id="demoBadge" data-i18n="common.demo" hidden>Демо</span>
     <span data-theme-picker></span>
-    <span class="conn"><span class="led" id="connDot"></span><span id="connText">Опрос…</span></span>
+    <span class="conn"><span class="led" id="connDot"></span>
+      <span id="connText" data-i18n="device.conn">Опрос…</span></span>
   </header>
 
   <div class="error px-box" id="errorBox"></div>
 
   <div class="top">
     <div class="charge px-box raised">
-      <span class="label">Заряд батареи</span>
+      <span class="label" data-i18n="device.charge">Заряд батареи</span>
       <div class="socline">
         <span class="pxwrap t-ok" id="socNum"></span>
         <div>
@@ -119,7 +121,7 @@
 
   <div class="chart-card px-box raised">
     <div class="chart-head">
-      <span class="label" id="chartTitle">История</span>
+      <span class="label" id="chartTitle" data-i18n="device.history">История</span>
       <span class="now" id="chartNow"></span>
     </div>
     <svg class="chart" id="chart" preserveAspectRatio="none"></svg>
@@ -128,7 +130,9 @@
   <div id="groups"></div>
 
   <div class="statusbar label">
-    <span id="footer">опрос…</span><span class="cursor" id="cursor"></span>
+    <span id="footer" data-i18n="common.polling">опрос…</span><span class="cursor" id="cursor"></span>
+    <span class="spacer"></span>
+    <span data-lang-picker></span>
   </div>
 </div>
 <div class="tooltip" id="tooltip"></div>
@@ -136,48 +140,51 @@
 <script src="/static/pixel.js"></script>
 <script>
 const $ = id => document.getElementById(id);
+const T = (key, vars) => BMI18n.t(key, vars);
 const DEVICE_ID = decodeURIComponent((location.pathname.split("/").filter(Boolean).pop()) || "");
 const HISTORY_MAX = 90;
+const ETA_PCT = 30;          /* цель оценки времени в /api/status (eta_30) */
 let history = [];
 let pollInterval = 10;
 let chartMeta = { unit:"", role:"" };
+let lastData = null;         /* последний ответ — чтобы перерисовать при смене языка */
 
 const GROUP_ORDER = ["counter","protection","config","control","other"];
-const GROUP_TITLES = {
-  counter:"Счётчики и накопление", protection:"Защиты и пороги",
-  config:"Настройки устройства", control:"Управление и состояние", other:"Прочее",
-};
 const TILE_PRIORITY = ["cur_voltage","cur_current","cur_power","ntc_temp","cpu_temp"];
 const TILE_EXCLUDE = new Set(["battery_percentage","cap","resistance"]);
-const VALUE_LABELS = { actual_cap:"фактическая", rated_cap:"номинальная",
-  on:"вкл", off:"выкл", english:"English", front:"передняя", back:"задняя" };
 
+/* Значения-перечисления из спецификации Tuya — переводим известные. */
 function fmt(v, unit) {
   if (v === null || v === undefined) return "—";
-  if (typeof v === "boolean") return v ? "да" : "нет";
+  if (typeof v === "boolean") return T(v ? "common.yes" : "common.no");
   if (typeof v === "number") return fmtNum(v, unit);
-  return VALUE_LABELS[v] || String(v);
+  const label = T("val." + v);
+  return label === "val." + v ? String(v) : label;
 }
 function num(v, digits = 2) {
   if (typeof v !== "number") return "—";
-  return (Number.isInteger(v) ? v : +v.toFixed(digits)).toLocaleString("ru-RU");
+  return (Number.isInteger(v) ? v : +v.toFixed(digits)).toLocaleString(BMI18n.locale());
 }
 
 async function loadConfig() {
   try {
-    const c = await (await fetch("/api/config")).json();
+    const c = await (await bmFetch("/api/config")).json();
     BMTheme.setDefault(c.theme);
+    BMI18n.setDefault(c.language);
     pollInterval = c.poll_interval || 10;
     $("demoBadge").hidden = !c.demo_mode;
     const dev = (c.devices || []).find(d => d.id === DEVICE_ID);
     if (dev) $("devName").textContent = dev.name;
     $("devsub").textContent = `${DEVICE_ID} · ${new URL(c.endpoint).host}`;
-  } catch (e) { $("devsub").textContent = "сервер не отвечает"; }
+  } catch (e) { $("devsub").textContent = T("common.noServer"); }
 }
 
+let conn = { online: false, err: null };
+
 function setConn(online, err) {
+  conn = { online, err };
   $("connDot").className = "led " + (online ? "on" : "off");
-  $("connText").textContent = online ? "На связи" : "Нет связи";
+  $("connText").textContent = T(online ? "device.online" : "device.offline");
   $("connText").className = online ? "t-ok" : "t-low";
   $("errorBox").classList.toggle("show", !!err);
   if (err) $("errorBox").innerHTML = `${pixelSprite("alert", { scale:2 })} ${escapeHtml(err)}`;
@@ -186,11 +193,14 @@ function setConn(online, err) {
 
 function etaText(eta) {
   if (!eta) return "";
-  if (eta.note === "at_or_below") return `<span class="t-warn">Заряд уже ≤ 30 %</span>`;
-  if (eta.note === "not_discharging") return `<span class="t-dim">Разряд не идёт</span>`;
-  if (eta.note === "no_data") return `<span class="t-dim">Нет данных о ёмкости</span>`;
+  if (eta.note === "at_or_below")
+    return `<span class="t-warn">${T("device.etaAtOrBelow", { pct: ETA_PCT })}</span>`;
+  if (eta.note === "not_discharging")
+    return `<span class="t-dim">${T("device.etaNotDischarging")}</span>`;
+  if (eta.note === "no_data")
+    return `<span class="t-dim">${T("device.etaNoData")}</span>`;
   const d = fmtDuration(eta.minutes);
-  return d ? `До 30 %: <b>≈ ${d}</b>` : "";
+  return d ? T("device.eta", { pct: ETA_PCT, dur: d }) : "";
 }
 
 function tileHtml(m) {
@@ -199,11 +209,13 @@ function tileHtml(m) {
     if (m.value > 0.02) cls += " pos"; else if (m.value < -0.02) cls += " neg";
   }
   const val = fmt(m.value, m.unit).replace(/\s(\S+)$/, ' <small>$1</small>');
-  return `<div class="tile px-box"><div class="label">${escapeHtml(m.label)}</div>
+  return `<div class="tile px-box"><div class="label">${escapeHtml(BMI18n.dp(m.code, m.role))}</div>
           <div class="${cls}">${val}</div></div>`;
 }
 
-function render(data) {
+/* fresh — новый ответ сервера (точку в историю графика добавляем только тогда,
+   при перерисовке из-за смены языка график остаётся прежним). */
+function render(data, fresh = true) {
   const metrics = data.metrics || [];
   const primary = data.primary || {};
   if (data.name) $("devName").textContent = data.name;
@@ -220,7 +232,7 @@ function render(data) {
     fill.className = "lvl-" + lvl;
   }
 
-  const st = PX_STATE[data.state] || PX_STATE.unknown;
+  const st = pxState(data.state);
   $("statePill").className = "state " + st.cls;
   $("statePill").innerHTML = pixelSprite(st.sprite, { scale:2 }) + " " + st.label;
 
@@ -232,9 +244,9 @@ function render(data) {
   const total = metrics.find(m => m.role === "capacity" && m.cap_kind === "total");
   const res = metrics.find(m => m.code === "resistance");
   let caps = "";
-  if (cap) caps += `<span>Остаток <b>${fmt(cap.value, cap.unit)}</b></span>`;
-  if (total) caps += `<span>Всего <b>${fmt(total.value, total.unit)}</b></span>`;
-  if (res) caps += `<span>Сопротивление <b>${fmt(res.value, res.unit)}</b></span>`;
+  if (cap) caps += `<span>${T("device.capRemain")} <b>${fmt(cap.value, cap.unit)}</b></span>`;
+  if (total) caps += `<span>${T("device.capTotal")} <b>${fmt(total.value, total.unit)}</b></span>`;
+  if (res) caps += `<span>${T("device.capRes")} <b>${fmt(res.value, res.unit)}</b></span>`;
   $("capLine").innerHTML = caps;
 
   // --- Живые показания ---
@@ -247,8 +259,8 @@ function render(data) {
   for (const g of GROUP_ORDER) {
     const items = metrics.filter(m => m.group === g);
     if (!items.length) continue;
-    gh += `<h2 class="section label">${GROUP_TITLES[g]}</h2><div class="px-box"><table><tbody>` +
-      items.map(m => `<tr><td>${escapeHtml(m.label)}</td>
+    gh += `<h2 class="section label">${T("group." + g)}</h2><div class="px-box"><table><tbody>` +
+      items.map(m => `<tr><td>${escapeHtml(BMI18n.dp(m.code, m.role))}</td>
         <td class="code">${escapeHtml(m.code)}</td>
         <td class="val">${fmt(m.value, m.unit)}</td></tr>`).join("") +
       `</tbody></table></div>`;
@@ -259,16 +271,18 @@ function render(data) {
   const src = primary.current || primary.power || primary.voltage;
   if (src && typeof src.value === "number") {
     chartMeta = { unit: src.unit, role: src.role,
-      title: src.role === "current" ? "Ток · заряд и разряд"
-           : src.role === "power" ? "Мощность" : "Напряжение" };
-    history.push({ t: data.timestamp, value: src.value });
-    if (history.length > HISTORY_MAX) history.shift();
+      title: T(src.role === "current" ? "device.chartCurrent"
+            : src.role === "power" ? "device.chartPower" : "device.chartVoltage") };
+    if (fresh) {
+      history.push({ t: data.timestamp, value: src.value });
+      if (history.length > HISTORY_MAX) history.shift();
+    }
     $("chartTitle").textContent = chartMeta.title;
     $("chartNow").textContent = fmt(src.value, src.unit);
     drawChart();
   }
 
-  $("footer").textContent = "обновлено " + new Date(data.timestamp || Date.now()).toLocaleTimeString("ru-RU");
+  $("footer").textContent = T("common.updated", { time: fmtTime(data.timestamp) });
 }
 
 /* ------------------- График: ступенчатый «пиксельный» плот ------------------- */
@@ -344,7 +358,7 @@ function onMove(evt) {
   tooltip.style.left = (evt.clientX + 12) + "px";
   tooltip.style.top = (evt.clientY - 10) + "px";
   tooltip.innerHTML = `<b>${fmt(best.v, chartMeta.unit)}</b><br>
-    <span class="t-dim">${new Date(best.t).toLocaleTimeString("ru-RU")}</span>`;
+    <span class="t-dim">${fmtTime(best.t)}</span>`;
 }
 function onLeave() {
   tooltip.style.opacity = 0;
@@ -357,18 +371,28 @@ chart.addEventListener("mouseleave", onLeave);
 chart.addEventListener("touchmove", e => { if (e.touches[0]) onMove(e.touches[0]); }, { passive:true });
 chart.addEventListener("touchend", onLeave);
 
-async function tick() {
+async function refresh() {
   try {
-    const resp = await fetch("/api/status?device_id=" + encodeURIComponent(DEVICE_ID));
+    const resp = await bmFetch("/api/status?device_id=" + encodeURIComponent(DEVICE_ID));
     const data = await resp.json();
     if (!resp.ok || data.error) setConn(false, data.error || `HTTP ${resp.status}`);
-    else { setConn(true, null); render(data); }
+    else { setConn(true, null); lastData = data; render(data); }
   } catch (e) {
-    setConn(false, "Сервер недоступен: " + e.message);
-  } finally {
-    setTimeout(tick, pollInterval * 1000);
+    setConn(false, T("device.unreachable", { msg: e.message }));
   }
 }
+
+async function tick() {
+  try { await refresh(); } finally { setTimeout(tick, pollInterval * 1000); }
+}
+
+/* Сменили язык — перерисовываем последний ответ (без новой точки на графике)
+   и перезапрашиваем конфиг: имя демо-устройства приходит с сервера. */
+BMI18n.onChange(() => {
+  setConn(conn.online, conn.err);
+  if (lastData) render(lastData, false);
+  loadConfig();
+});
 
 $("logo").innerHTML = pixelBattery(2);
 $("socNum").innerHTML = pixelText("--%", { scale: 6 });

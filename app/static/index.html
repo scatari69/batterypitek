@@ -3,9 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Battery Monitor · устройства</title>
+<title data-i18n="index.title">Battery Monitor</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'><g fill='%234fe3c1'><rect x='0' y='1' width='6' height='1'/><rect x='0' y='6' width='6' height='1'/><rect x='0' y='2' width='1' height='4'/><rect x='5' y='2' width='1' height='4'/><rect x='6' y='3' width='1' height='2'/><rect x='1' y='3' width='3' height='2'/></g></svg>">
 <link rel="stylesheet" href="/static/pixel.css">
+<script src="/static/i18n.js"></script>
 <script src="/static/theme.js"></script>
 <style>
   .page { max-width:1120px; margin:0 auto; padding:26px 20px 40px; }
@@ -83,23 +84,23 @@
     <span class="logo" id="logo"></span>
     <div>
       <h1>Battery Monitor</h1>
-      <div class="sub label" id="sub">инициализация…</div>
+      <div class="sub label" id="sub" data-i18n="common.init">инициализация…</div>
     </div>
     <span class="spacer"></span>
-    <span class="badge" id="demoBadge" hidden>Демо</span>
+    <span class="badge" id="demoBadge" data-i18n="common.demo" hidden>Демо</span>
     <span data-theme-picker></span>
-    <a class="btn" href="/admin">Настройки</a>
+    <a class="btn" href="/admin" data-i18n="common.settings">Настройки</a>
   </header>
 
   <div class="panel px-box raised">
     <div class="thead" id="thead">
       <span></span>
-      <span class="label">Устройство</span>
-      <span class="label">Заряд</span>
+      <span class="label" data-i18n="index.thDevice">Устройство</span>
+      <span class="label" data-i18n="index.thSoc">Заряд</span>
       <span></span>
-      <span class="label">Режим</span>
-      <span class="label">До 30 %</span>
-      <span class="label">Напряжение · ток</span>
+      <span class="label" data-i18n="index.thState">Режим</span>
+      <span class="label" id="thEta"></span>
+      <span class="label" data-i18n="index.thReads">Напряжение · ток</span>
     </div>
     <div class="rule"></div>
     <div id="list"></div>
@@ -107,27 +108,36 @@
   </div>
 
   <div class="statusbar label">
-    <span id="upd">опрос…</span><span class="cursor" id="cursor"></span>
+    <span id="upd" data-i18n="common.polling">опрос…</span><span class="cursor" id="cursor"></span>
     <span class="spacer"></span>
     <span id="footer"></span>
+    <span data-lang-picker></span>
   </div>
 </div>
 
 <script src="/static/pixel.js"></script>
 <script>
 const $ = id => document.getElementById(id);
+const T = (key, vars) => BMI18n.t(key, vars);
+const ETA_PCT = 30;          /* цель оценки времени в /api/devices (eta_30) */
 let pollInterval = 15;
+let lastData = null;         /* последний ответ — чтобы перерисовать при смене языка */
+let deviceCount = 0;
 
 function etaCell(dev) {
-  if (dev.state === "charging") return `<span class="eta t-charge">идёт заряд</span>`;
+  if (dev.state === "charging")
+    return `<span class="eta t-charge">${T("index.etaCharging")}</span>`;
   const note = dev.eta_note;
-  if (note === "at_or_below") return `<span class="eta t-warn">уже ≤ 30 %</span>`;
+  if (note === "at_or_below")
+    return `<span class="eta t-warn">${T("index.etaAtOrBelow", { pct: ETA_PCT })}</span>`;
   if (note === "ok") {
     const d = fmtDuration(dev.eta_minutes);
     return `<span class="eta">${d ? "≈ " + d : "—"}</span>`;
   }
-  if (note === "not_discharging") return `<span class="eta t-dim">разряд не идёт</span>`;
-  if (note === "no_data") return `<span class="eta t-dim">нет ёмкости</span>`;
+  if (note === "not_discharging")
+    return `<span class="eta t-dim">${T("index.etaNotDischarging")}</span>`;
+  if (note === "no_data")
+    return `<span class="eta t-dim">${T("index.etaNoData")}</span>`;
   return `<span class="eta t-dim">—</span>`;
 }
 
@@ -138,12 +148,12 @@ function row(dev) {
   if (!dev.online) {
     return `<a class="row offline" href="${href}">
       <span class="led off"></span>${name}
-      <span class="err t-low">${pixelSprite("offline")} ${escapeHtml(dev.error || "нет связи")}</span></a>`;
+      <span class="err t-low">${pixelSprite("offline")} ${escapeHtml(dev.error || T("index.offline"))}</span></a>`;
   }
 
   const soc = typeof dev.soc === "number" ? Math.max(0, Math.min(100, dev.soc)) : null;
   const lvl = soc == null ? "dim" : socLevel(soc);
-  const st = PX_STATE[dev.state] || PX_STATE.unknown;
+  const st = pxState(dev.state);
 
   return `<a class="row" href="${href}">
     <span class="led on"></span>
@@ -164,46 +174,66 @@ function row(dev) {
 
 async function loadConfig() {
   try {
-    const c = await (await fetch("/api/config")).json();
+    const c = await (await bmFetch("/api/config")).json();
     BMTheme.setDefault(c.theme);
+    BMI18n.setDefault(c.language);
     pollInterval = Math.max(10, c.poll_interval || 15);
     $("demoBadge").hidden = !c.demo_mode;
-    const n = (c.devices || []).length;
-    $("sub").textContent = `${n} ${plural(n, "устройство", "устройства", "устройств")}`;
-  } catch (e) { $("sub").textContent = "сервер не отвечает"; }
+    deviceCount = (c.devices || []).length;
+    renderSub();
+  } catch (e) { $("sub").textContent = T("common.noServer"); }
+}
+
+function renderSub() {
+  $("sub").textContent = `${deviceCount} ${BMI18n.plural(deviceCount, "devices")}`;
 }
 
 function showEmpty() {
   $("thead").hidden = true;
   $("empty").hidden = false;
-  $("empty").innerHTML = `<div class="big">Батарей пока нет</div>
-    <p>Добавьте устройства в настройках — или включите демо-режим, чтобы<br>
-       посмотреть, как это выглядит с данными.</p>
-    <a class="btn primary" href="/admin">Открыть настройки</a>`;
+  $("empty").innerHTML = `<div class="big">${T("index.emptyTitle")}</div>
+    <p>${T("index.emptyText")}</p>
+    <a class="btn primary" href="/admin">${T("index.emptyBtn")}</a>`;
 }
 
-async function tick() {
+function render(data) {
+  const list = data.devices || [];
+  if (!list.length) { showEmpty(); $("list").innerHTML = ""; }
+  else {
+    $("empty").hidden = true;
+    $("thead").hidden = false;
+    $("list").innerHTML = list.map(row).join("");
+  }
+  $("upd").textContent = T("common.updated", { time: fmtTime(data.timestamp) });
+  $("footer").textContent = data.demo ? T("common.generated") : "";
+}
+
+async function refresh() {
   try {
-    const data = await (await fetch("/api/devices")).json();
-    const list = data.devices || [];
-    if (!list.length) { showEmpty(); $("list").innerHTML = ""; }
-    else {
-      $("empty").hidden = true;
-      $("thead").hidden = false;
-      $("list").innerHTML = list.map(row).join("");
-    }
-    $("upd").textContent = "обновлено " + new Date(data.timestamp || Date.now()).toLocaleTimeString("ru-RU");
-    $("footer").textContent = data.demo ? "данные сгенерированы" : "";
+    lastData = await (await bmFetch("/api/devices")).json();
+    render(lastData);
     $("cursor").style.background = "var(--teal)";
   } catch (e) {
-    $("upd").textContent = "нет ответа от сервера";
+    $("upd").textContent = T("common.noAnswer");
     $("cursor").style.background = "var(--red)";
-  } finally {
-    setTimeout(tick, pollInterval * 1000);
   }
 }
 
+async function tick() {
+  try { await refresh(); } finally { setTimeout(tick, pollInterval * 1000); }
+}
+
+/* Сменили язык — переводим заголовок таблицы и перерисовываем последний ответ.
+   Имена демо-устройств приходят с сервера, поэтому список ещё и перезапрашиваем. */
+BMI18n.onChange(() => {
+  $("thEta").textContent = T("index.thEta", { pct: ETA_PCT });
+  renderSub();
+  if (lastData) render(lastData);
+  refresh();
+});
+
 $("logo").innerHTML = pixelBattery(2);
+$("thEta").textContent = T("index.thEta", { pct: ETA_PCT });
 (async function init() { await loadConfig(); tick(); })();
 </script>
 </body>

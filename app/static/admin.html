@@ -3,9 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Battery Monitor · настройки</title>
+<title data-i18n="admin.title">Battery Monitor</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'><g fill='%234fe3c1'><rect x='0' y='1' width='6' height='1'/><rect x='0' y='6' width='6' height='1'/><rect x='0' y='2' width='1' height='4'/><rect x='5' y='2' width='1' height='4'/><rect x='6' y='3' width='1' height='2'/><rect x='1' y='3' width='3' height='2'/></g></svg>">
 <link rel="stylesheet" href="/static/pixel.css">
+<script src="/static/i18n.js"></script>
 <script src="/static/theme.js"></script>
 <style>
   .page { max-width:780px; margin:0 auto; padding:26px 20px 120px; }
@@ -106,59 +107,64 @@
 </head>
 <body>
 <div class="page" id="panel">
-  <a class="back" href="/">← К дашборду</a>
+  <a class="back" href="/" data-i18n="admin.back">← К дашборду</a>
   <header>
-    <h1>Настройки</h1>
+    <h1 data-i18n="admin.heading">Настройки</h1>
     <div class="spacer"></div>
+    <span data-lang-picker></span>
     <span data-theme-picker></span>
-    <button class="linkbtn hidden" id="logoutBtn" onclick="logout()">Выйти</button>
+    <button class="linkbtn hidden" id="logoutBtn" onclick="logout()"
+      data-i18n="admin.logout">Выйти</button>
   </header>
 
   <div class="warn-banner hidden" id="warnBanner">
-    <span>Панель не защищена паролем — задайте его в разделе «Безопасность».</span>
+    <span data-i18n="admin.noPassword">Панель не защищена паролем.</span>
   </div>
 
   <!-- Подключение Tuya -->
   <div class="card">
-    <h2>Подключение Tuya</h2>
-    <p class="desc">Реквизиты из проекта на <a href="https://iot.tuya.com" target="_blank" rel="noopener">iot.tuya.com</a>
-      (Cloud → ваш проект → Overview). Общие для всех устройств аккаунта.</p>
+    <h2 data-i18n="admin.tuya">Подключение Tuya</h2>
+    <p class="desc" data-i18n-html="admin.tuyaDesc"></p>
 
     <label>Access ID</label>
-    <input type="text" id="access_id" autocomplete="off" spellcheck="false" placeholder="например, 3x8k...">
+    <input type="text" id="access_id" autocomplete="off" spellcheck="false"
+      data-i18n-ph="admin.accessIdPh">
 
-    <label>Access Secret</label>
-    <input type="password" id="access_key" autocomplete="off" placeholder="введите секрет">
+    <label data-i18n="admin.accessKey">Access Secret</label>
+    <input type="password" id="access_key" autocomplete="off">
     <div class="hint" id="keyHint"></div>
 
-    <label>Регион дата-центра</label>
+    <label data-i18n="admin.region">Регион дата-центра</label>
     <select id="endpoint">
-      <option value="https://openapi.tuyaeu.com">Центральная Европа (tuyaeu)</option>
-      <option value="https://openapi.tuyaus.com">Западная Америка (tuyaus)</option>
-      <option value="https://openapi-ueaz.tuyaus.com">Восточная Америка (ueaz)</option>
-      <option value="https://openapi.tuyacn.com">Китай (tuyacn)</option>
-      <option value="https://openapi.tuyain.com">Индия (tuyain)</option>
+      <option value="https://openapi.tuyaeu.com" data-i18n="admin.regionEu"></option>
+      <option value="https://openapi.tuyaus.com" data-i18n="admin.regionUs"></option>
+      <option value="https://openapi-ueaz.tuyaus.com" data-i18n="admin.regionUeaz"></option>
+      <option value="https://openapi.tuyacn.com" data-i18n="admin.regionCn"></option>
+      <option value="https://openapi.tuyain.com" data-i18n="admin.regionIn"></option>
     </select>
-    <div class="hint">Должен совпадать с регионом аккаунта в приложении Smart Life / Tuya.</div>
+    <div class="hint" data-i18n="admin.regionHint"></div>
 
     <div class="row" style="margin-top:14px">
-      <button class="btn" id="testBtn" onclick="testConnection()">Проверить подключение</button>
+      <button class="btn" id="testBtn" onclick="testConnection()"
+        data-i18n="admin.testBtn">Проверить подключение</button>
     </div>
     <div class="result" id="testResult"></div>
   </div>
 
   <!-- Устройства -->
   <div class="card">
-    <h2>Устройства</h2>
-    <p class="desc">Список батарей: имя (произвольное) и Device ID. Можно добавить вручную
-      или найти автоматически в аккаунте.</p>
+    <h2 data-i18n="admin.devices">Устройства</h2>
+    <p class="desc" data-i18n="admin.devicesDesc"></p>
 
-    <div class="devhdr"><span class="nm">Имя</span><span class="id">Device ID</span><span class="sp"></span></div>
+    <div class="devhdr"><span class="nm" data-i18n="admin.colName">Имя</span>
+      <span class="id" data-i18n="admin.colId">Device ID</span><span class="sp"></span></div>
     <div id="devList"></div>
 
     <div class="row wrap" style="margin-top:12px">
-      <button class="btn ghost" onclick="addDeviceRow('','')">+ Добавить вручную</button>
-      <button class="btn" id="discoverBtn" onclick="discover()">Найти в аккаунте</button>
+      <button class="btn ghost" onclick="addDeviceRow('','')"
+        data-i18n="admin.addManual">+ Добавить вручную</button>
+      <button class="btn" id="discoverBtn" onclick="discover()"
+        data-i18n="admin.discoverBtn">Найти в аккаунте</button>
     </div>
     <div class="result" id="discoverResult"></div>
     <div class="discover hidden" id="discoverList"></div>
@@ -166,96 +172,109 @@
 
   <!-- Общие -->
   <div class="card">
-    <h2>Общие параметры</h2>
-    <label>Интервал опроса, секунд</label>
+    <h2 data-i18n="admin.general">Общие параметры</h2>
+    <label data-i18n="admin.poll">Интервал опроса, секунд</label>
     <input type="number" id="poll_interval" min="3" max="600" style="max-width:160px">
     <div class="toggle">
       <input type="checkbox" id="demo_mode">
-      <span class="t">Демо-режим (сгенерированные данные без обращения к Tuya)</span>
+      <span class="t" data-i18n="admin.demoMode"></span>
     </div>
   </div>
 
   <!-- Оформление -->
   <div class="card">
-    <h2>Оформление</h2>
-    <p class="desc">Тема по умолчанию — её видят все браузеры, где оформление не меняли вручную.</p>
+    <h2 data-i18n="admin.appearance">Оформление</h2>
+    <p class="desc" data-i18n="admin.appearanceDesc"></p>
 
-    <label>Тема по умолчанию</label>
+    <label data-i18n="admin.themeLabel">Тема по умолчанию</label>
     <select id="theme"></select>
-    <div class="hint">Наборов два: «Dracula» — палитра Dracula и светлая Alucard, гарнитура
-      Meslo, ровная панель; «Пиксель» — приборный VFD-дисплей и монохромный LCD с построчной
-      развёрткой. «Авто» переключает светлый и тёмный вариант по настройке системы.</div>
+    <div class="hint" data-i18n="admin.themeHint"></div>
 
     <div class="hint" id="themeLocal"></div>
     <div class="row" style="margin-top:10px">
-      <button class="btn ghost hidden" id="themeResetBtn" onclick="BMTheme.reset()">
-        Вернуть тему по умолчанию</button>
+      <button class="btn ghost hidden" id="themeResetBtn" onclick="BMTheme.reset()"
+        data-i18n="admin.themeReset"></button>
+    </div>
+  </div>
+
+  <!-- Язык -->
+  <div class="card">
+    <h2 data-i18n="admin.language">Язык</h2>
+    <p class="desc" data-i18n="admin.languageDesc"></p>
+
+    <label data-i18n="admin.languageLabel">Язык по умолчанию</label>
+    <select id="language"></select>
+    <div class="hint" data-i18n="admin.languageHint"></div>
+
+    <div class="hint" id="langLocal"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn ghost hidden" id="langResetBtn" onclick="BMI18n.reset()"
+        data-i18n="admin.langReset"></button>
     </div>
   </div>
 
   <!-- Уведомления -->
   <div class="card">
-    <h2>Уведомления в Telegram</h2>
-    <p class="desc">Бот пишет в чат, когда заряд батареи падает ниже порога или когда
-      до этого порога остаётся мало времени. Создайте бота у
-      <a href="https://t.me/BotFather" target="_blank" rel="noopener">@BotFather</a>,
-      напишите ему (или добавьте в группу) и определите ID чата.</p>
+    <h2 data-i18n="admin.tg">Уведомления в Telegram</h2>
+    <p class="desc" data-i18n-html="admin.tgDesc"></p>
 
     <div class="toggle" style="margin-top:0">
       <input type="checkbox" id="tg_enabled">
-      <span class="t">Включить уведомления</span>
+      <span class="t" data-i18n="admin.tgEnable"></span>
     </div>
 
-    <label>Токен бота</label>
+    <label data-i18n="admin.tgToken">Токен бота</label>
     <input type="password" id="tg_bot_token" autocomplete="off" placeholder="123456:AA...">
     <div class="hint" id="tgTokenHint"></div>
 
-    <label>ID чата</label>
+    <label data-i18n="admin.tgChat">ID чата</label>
     <div class="row">
-      <input type="text" id="tg_chat_id" spellcheck="false" placeholder="например, 123456789 или -1001234567890">
-      <button class="btn" id="tgChatsBtn" onclick="findChats()">Определить</button>
+      <input type="text" id="tg_chat_id" spellcheck="false" data-i18n-ph="admin.tgChatPh">
+      <button class="btn" id="tgChatsBtn" onclick="findChats()"
+        data-i18n="admin.tgChatBtn">Определить</button>
     </div>
-    <div class="hint">Личный чат — положительное число, группа/канал — начинается с «−100».</div>
+    <div class="hint" data-i18n="admin.tgChatHint"></div>
     <div class="result" id="tgChatsResult"></div>
     <div class="discover hidden" id="tgChatsList"></div>
 
-    <label>Порог заряда, %</label>
+    <label data-i18n="admin.tgSoc">Порог заряда, %</label>
     <input type="number" id="tg_soc_threshold" min="1" max="99" style="max-width:160px">
-    <div class="hint">Общий порог: и для уведомления о низком заряде, и как цель для оценки времени.</div>
+    <div class="hint" data-i18n="admin.tgSocHint"></div>
 
     <div class="toggle">
       <input type="checkbox" id="tg_notify_low_soc">
-      <span class="t">Заряд опустился ниже порога</span>
+      <span class="t" data-i18n="admin.tgLowSoc"></span>
     </div>
     <div class="toggle">
       <input type="checkbox" id="tg_notify_low_eta">
-      <span class="t">До порога осталось меньше, минут:</span>
+      <span class="t" data-i18n="admin.tgLowEta"></span>
       <input type="number" id="tg_eta_threshold" min="1" max="10080" style="max-width:110px">
     </div>
     <div class="toggle">
       <input type="checkbox" id="tg_notify_recovery">
-      <span class="t">Сообщать о возврате в норму («отбой»)</span>
+      <span class="t" data-i18n="admin.tgRecovery"></span>
     </div>
     <div class="toggle">
       <input type="checkbox" id="tg_notify_offline">
-      <span class="t">Устройство недоступно (ошибка опроса)</span>
+      <span class="t" data-i18n="admin.tgOffline"></span>
     </div>
 
     <div class="row wrap" style="margin-top:14px; align-items:flex-end">
       <div style="flex:1; min-width:180px">
-        <label style="margin-top:0">Интервал проверки, секунд</label>
+        <label style="margin-top:0" data-i18n="admin.tgCheck"></label>
         <input type="number" id="tg_check_interval" min="15" max="3600">
       </div>
       <div style="flex:1; min-width:180px">
-        <label style="margin-top:0">Повторять напоминание, минут</label>
+        <label style="margin-top:0" data-i18n="admin.tgRepeat"></label>
         <input type="number" id="tg_repeat_minutes" min="0" max="10080">
       </div>
     </div>
-    <div class="hint">0 — не повторять: пока показатель не вернётся в норму, новых сообщений не будет.</div>
+    <div class="hint" data-i18n="admin.tgRepeatHint"></div>
 
     <div class="row wrap" style="margin-top:14px">
-      <button class="btn" id="tgTestBtn" onclick="testTelegram()">Отправить тестовое сообщение</button>
-      <button class="btn ghost" onclick="loadTgLog()">Обновить журнал</button>
+      <button class="btn" id="tgTestBtn" onclick="testTelegram()"
+        data-i18n="admin.tgTestBtn">Отправить тестовое сообщение</button>
+      <button class="btn ghost" onclick="loadTgLog()" data-i18n="admin.tgLogBtn"></button>
     </div>
     <div class="result" id="tgTestResult"></div>
     <div class="discover hidden" id="tgLog"></div>
@@ -263,16 +282,17 @@
 
   <!-- Безопасность -->
   <div class="card">
-    <h2>Безопасность</h2>
-    <p class="desc" id="secDesc">Пароль защищает админ-панель. Дашборд остаётся открытым.</p>
+    <h2 data-i18n="admin.security">Безопасность</h2>
+    <p class="desc" id="secDesc" data-i18n="admin.securityDesc"></p>
     <div id="curPwWrap" class="hidden">
-      <label>Текущий пароль</label>
+      <label data-i18n="admin.pwCurrent">Текущий пароль</label>
       <input type="password" id="cur_pw" autocomplete="off">
     </div>
-    <label>Новый пароль</label>
-    <input type="password" id="new_pw" autocomplete="off" placeholder="минимум 4 символа">
+    <label data-i18n="admin.pwNew">Новый пароль</label>
+    <input type="password" id="new_pw" autocomplete="off" data-i18n-ph="admin.pwNewPh">
     <div class="row" style="margin-top:12px">
-      <button class="btn" onclick="savePassword()" id="pwBtn">Сохранить пароль</button>
+      <button class="btn" onclick="savePassword()" id="pwBtn"
+        data-i18n="admin.pwSave">Сохранить пароль</button>
     </div>
     <div class="result" id="pwResult"></div>
   </div>
@@ -280,7 +300,8 @@
 
 <div class="savebar" id="savebar">
   <div class="inner">
-    <button class="btn primary" id="saveBtn" onclick="saveSettings()">Сохранить настройки</button>
+    <button class="btn primary" id="saveBtn" onclick="saveSettings()"
+      data-i18n="admin.save">Сохранить настройки</button>
     <span class="msg" id="saveMsg"></span>
   </div>
 </div>
@@ -288,17 +309,19 @@
 <!-- Логин -->
 <div class="overlay hidden" id="loginOverlay">
   <div class="box">
-    <h2>Вход</h2>
-    <p class="desc" style="color:var(--muted);font-size:13px">Введите пароль администратора.</p>
-    <label>Пароль</label>
+    <h2 data-i18n="admin.login">Вход</h2>
+    <p class="desc" style="color:var(--muted);font-size:13px" data-i18n="admin.loginDesc"></p>
+    <label data-i18n="admin.password">Пароль</label>
     <input type="password" id="login_pw" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
     <div class="result err" id="loginErr" style="margin-bottom:12px"></div>
-    <button class="btn primary" style="width:100%" onclick="doLogin()">Войти</button>
+    <button class="btn primary" style="width:100%" onclick="doLogin()"
+      data-i18n="admin.loginBtn">Войти</button>
   </div>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
+const T = (key, vars) => BMI18n.t(key, vars);
 const TOKEN_KEY = "bm_admin_token";
 let authEnabled = false;
 
@@ -310,7 +333,7 @@ async function api(path, method="GET", body=null){
   if (body != null){ opts.headers["Content-Type"]="application/json"; opts.body=JSON.stringify(body); }
   const t = token();
   if (t) opts.headers["Authorization"] = "Bearer " + t;
-  const resp = await fetch(path, opts);
+  const resp = await bmFetch(path, opts);
   if (resp.status === 401){ showLogin(); throw new Error("unauthorized"); }
   const data = await resp.json().catch(()=>({}));
   if (!resp.ok) throw new Error(data.detail || `HTTP ${resp.status}`);
@@ -323,31 +346,32 @@ function showResult(el, ok, msg){
 }
 
 /* ---------------- Загрузка настроек ---------------- */
+let lastSettings = null;   /* последний ответ — чтобы перерисовать при смене языка */
+
 async function load(){
   let s;
   try { s = await api("/api/admin/settings"); }
-  catch(e){ if (e.message === "unauthorized") return; showToast("Ошибка загрузки: "+e.message); return; }
+  catch(e){ if (e.message === "unauthorized") return; showToast(T("admin.loadError", { msg: e.message })); return; }
 
+  lastSettings = s;
   authEnabled = s.auth_enabled;
   $("loginOverlay").classList.add("hidden");
   $("warnBanner").classList.toggle("hidden", authEnabled);
   $("logoutBtn").classList.toggle("hidden", !authEnabled);
   $("curPwWrap").classList.toggle("hidden", !authEnabled);
-  $("secDesc").textContent = authEnabled
-    ? "Пароль установлен. Чтобы сменить — введите текущий и новый."
-    : "Пароль не задан. Панель открыта всем в сети — рекомендуем задать пароль.";
-  $("pwBtn").textContent = authEnabled ? "Сменить пароль" : "Установить пароль";
+  renderSecurity();
 
   $("access_id").value = s.access_id || "";
   $("access_key").value = "";
-  $("access_key").placeholder = s.has_key ? `сохранён (${s.key_hint}) — оставьте пустым` : "введите секрет";
-  $("keyHint").textContent = s.has_key ? "Оставьте поле пустым, чтобы не менять сохранённый секрет." : "";
+  renderKeyHint();
   if (s.endpoint) $("endpoint").value = s.endpoint;
   $("poll_interval").value = s.poll_interval || 10;
   $("demo_mode").checked = !!s.demo_mode;
 
   BMTheme.setDefault(s.theme);
   $("theme").value = BMTheme.defaultTheme();
+  BMI18n.setDefault(s.language);
+  $("language").value = BMI18n.defaultLang();
 
   $("devList").innerHTML = "";
   (s.devices || []).forEach(d => addDeviceRow(d.name, d.id));
@@ -356,12 +380,25 @@ async function load(){
   loadTelegram(s.telegram || {});
 }
 
+/* Подписи, зависящие и от языка, и от состояния настроек. */
+function renderSecurity(){
+  $("secDesc").textContent = T(authEnabled ? "admin.securitySet" : "admin.securityNone");
+  $("pwBtn").textContent = T(authEnabled ? "admin.pwChange" : "admin.pwSet");
+}
+
+function renderKeyHint(){
+  const s = lastSettings || {};
+  $("access_key").placeholder = s.has_key
+    ? T("admin.accessKeySaved", { hint: s.key_hint }) : T("admin.accessKeyPh");
+  $("keyHint").textContent = s.has_key ? T("admin.accessKeyHint") : "";
+}
+
 /* ---------------- Оформление ---------------- */
 /* Список темы по умолчанию сохраняется вместе с остальными настройками,
    а переключатель в шапке меняет оформление только в этом браузере. */
 function initTheme(){
   const sel = $("theme");
-  BMTheme.CHOICES.forEach(([value, label]) => sel.add(new Option(label, value)));
+  BMTheme.CHOICES.forEach(value => sel.add(new Option(BMTheme.label(value), value)));
   sel.value = BMTheme.defaultTheme();
   BMTheme.onChange(renderThemeLocal);
   renderThemeLocal();
@@ -369,18 +406,41 @@ function initTheme(){
 
 function renderThemeLocal(){
   const own = BMTheme.override();
+  const sel = $("theme");
+  [...sel.options].forEach(opt => { opt.textContent = BMTheme.label(opt.value); });
   $("themeLocal").textContent = own
-    ? `Сейчас в этом браузере выбрана своя тема: ${BMTheme.label(own)}. Тема по умолчанию на неё не влияет.`
-    : "В этом браузере действует тема по умолчанию. Переключатель в шапке страницы меняет оформление только здесь.";
+    ? T("admin.themeOwn", { name: BMTheme.label(own) }) : T("admin.themeDefault");
   $("themeResetBtn").classList.toggle("hidden", !own);
 }
 
+/* ---------------- Язык ---------------- */
+/* Так же, как с темой: список — общая настройка, переключатель в футере — свой. */
+function initLang(){
+  const sel = $("language");
+  BMI18n.CHOICES.forEach(([value, label]) => sel.add(new Option(label, value)));
+  sel.value = BMI18n.defaultLang();
+  renderLangLocal();
+}
+
+function renderLangLocal(){
+  const own = BMI18n.override();
+  $("langLocal").textContent = own
+    ? T("admin.langOwn", { name: BMI18n.langName(own) }) : T("admin.langDefault");
+  $("langResetBtn").classList.toggle("hidden", !own);
+}
+
 /* ---------------- Уведомления ---------------- */
+function renderTgTokenHint(){
+  const tg = (lastSettings || {}).telegram || {};
+  $("tg_bot_token").placeholder = tg.has_token
+    ? T("admin.tgTokenSaved", { hint: tg.token_hint }) : "123456:AA...";
+  $("tgTokenHint").textContent = tg.has_token ? T("admin.tgTokenHint") : "";
+}
+
 function loadTelegram(tg){
   $("tg_enabled").checked = !!tg.enabled;
   $("tg_bot_token").value = "";
-  $("tg_bot_token").placeholder = tg.has_token ? `сохранён (${tg.token_hint}) — оставьте пустым` : "123456:AA...";
-  $("tgTokenHint").textContent = tg.has_token ? "Оставьте поле пустым, чтобы не менять сохранённый токен." : "";
+  renderTgTokenHint();
   $("tg_chat_id").value = tg.chat_id || "";
   $("tg_soc_threshold").value = tg.soc_threshold ?? 30;
   $("tg_eta_threshold").value = tg.eta_threshold ?? 60;
@@ -412,7 +472,7 @@ function collectTelegram(){
 }
 
 async function testTelegram(){
-  const btn = $("tgTestBtn"); btn.disabled = true; btn.textContent = "Отправка…";
+  const btn = $("tgTestBtn"); btn.disabled = true; btn.textContent = T("admin.tgSending");
   try {
     const data = await api("/api/admin/telegram/test", "POST", {
       bot_token: $("tg_bot_token").value.trim(),
@@ -420,12 +480,12 @@ async function testTelegram(){
     });
     showResult($("tgTestResult"), data.ok, data.message);
   } catch(e){
-    if (e.message !== "unauthorized") showResult($("tgTestResult"), false, "Ошибка: " + e.message);
-  } finally { btn.disabled = false; btn.textContent = "Отправить тестовое сообщение"; }
+    if (e.message !== "unauthorized") showResult($("tgTestResult"), false, T("common.error", { msg: e.message }));
+  } finally { btn.disabled = false; btn.textContent = T("admin.tgTestBtn"); }
 }
 
 async function findChats(){
-  const btn = $("tgChatsBtn"); btn.disabled = true; btn.textContent = "Поиск…";
+  const btn = $("tgChatsBtn"); btn.disabled = true; btn.textContent = T("admin.searching");
   const box = $("tgChatsList");
   try {
     const data = await api("/api/admin/telegram/chats", "POST", {
@@ -440,16 +500,16 @@ async function findChats(){
           <div class="dn">${escapeAttr(c.title)}</div>
           <div class="di">${escapeAttr(c.id)} · ${escapeAttr(c.type || "")}</div>
         </div>
-        <button class="btn ghost" onclick="pickChat('${escapeAttr(c.id)}')">Выбрать</button>
+        <button class="btn ghost" onclick="pickChat('${escapeAttr(c.id)}')">${T("admin.tgChatPick")}</button>
       </div>`).join("");
   } catch(e){
-    if (e.message !== "unauthorized") showResult($("tgChatsResult"), false, "Ошибка: " + e.message);
-  } finally { btn.disabled = false; btn.textContent = "Определить"; }
+    if (e.message !== "unauthorized") showResult($("tgChatsResult"), false, T("common.error", { msg: e.message }));
+  } finally { btn.disabled = false; btn.textContent = T("admin.tgChatBtn"); }
 }
 function pickChat(id){
   $("tg_chat_id").value = id;
   $("tgChatsList").classList.add("hidden");
-  showToast("ID чата подставлен — не забудьте сохранить.");
+  showToast(T("admin.tgChatPicked"));
 }
 
 async function loadTgLog(){
@@ -458,12 +518,13 @@ async function loadTgLog(){
     const data = await api("/api/admin/telegram/log");
     const events = data.events || [];
     if (!events.length){ box.classList.add("hidden"); return; }
-    box.innerHTML = `<div style="font-size:12px;color:var(--muted);margin-bottom:6px">Последние уведомления</div>` +
+    box.innerHTML = `<div style="font-size:12px;color:var(--muted);margin-bottom:6px">${T("admin.tgLogTitle")}</div>` +
       events.map(e => `
       <div class="disc-item">
         <div style="flex:1">
           <div class="dn" style="white-space:pre-wrap">${escapeAttr(e.text)}</div>
-          <div class="di">${new Date(e.ts).toLocaleString("ru-RU")}${e.ok ? "" : " · не отправлено: " + escapeAttr(e.error)}</div>
+          <div class="di">${new Date(e.ts).toLocaleString(BMI18n.locale())}${
+            e.ok ? "" : escapeAttr(T("admin.tgLogFailed", { msg: e.error }))}</div>
         </div>
         <span class="st ${e.ok?"on":"off"}">${e.ok?"✓":"✕"}</span>
       </div>`).join("");
@@ -476,9 +537,11 @@ function addDeviceRow(name, id){
   const row = document.createElement("div");
   row.className = "devrow";
   row.innerHTML = `
-    <input class="nm" type="text" placeholder="Имя (напр. Гараж)" value="${escapeAttr(name)}">
+    <input class="nm" type="text" data-i18n-ph="admin.namePh" value="${escapeAttr(name)}">
     <input class="id" type="text" spellcheck="false" placeholder="Device ID" value="${escapeAttr(id)}">
-    <button class="icon-btn" title="Удалить" onclick="this.parentElement.remove()">✕</button>`;
+    <button class="icon-btn" data-i18n-title="admin.remove"
+      onclick="this.parentElement.remove()">✕</button>`;
+  BMI18n.apply(row);
   $("devList").appendChild(row);
 }
 function collectDevices(){
@@ -493,48 +556,48 @@ function deviceExists(id){
 function escapeAttr(s){ return String(s ?? "").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
 
 async function discover(){
-  const btn = $("discoverBtn"); btn.disabled = true; btn.textContent = "Поиск…";
+  const btn = $("discoverBtn"); btn.disabled = true; btn.textContent = T("admin.searching");
   const res = $("discoverResult"); res.className = "result";
   try {
     const data = await api("/api/admin/discover");
     const list = data.devices || [];
     const box = $("discoverList");
-    if (!list.length){ showResult(res, false, "Устройства в аккаунте не найдены."); box.classList.add("hidden"); return; }
+    if (!list.length){ showResult(res, false, T("admin.notFound")); box.classList.add("hidden"); return; }
     box.innerHTML = `<div class="row" style="justify-content:space-between;margin-bottom:8px">
-        <b style="font-size:13px">Найдено: ${list.length}</b>
-        <button class="btn ghost" onclick="addAllDiscovered()">Добавить все</button></div>` +
+        <b style="font-size:13px">${T("admin.found", { n: list.length })}</b>
+        <button class="btn ghost" onclick="addAllDiscovered()">${T("admin.addAll")}</button></div>` +
       list.map(d => `
       <div class="disc-item" data-id="${escapeAttr(d.id)}" data-name="${escapeAttr(d.name)}">
         <div style="flex:1">
           <div class="dn">${escapeAttr(d.name)}</div>
           <div class="di">${escapeAttr(d.id)}${d.product_name ? " · "+escapeAttr(d.product_name) : ""}</div>
         </div>
-        <span class="st ${d.online?"on":"off"}">${d.online?"онлайн":"офлайн"}</span>
-        <button class="btn ghost" onclick="addDiscovered(this)">Добавить</button>
+        <span class="st ${d.online?"on":"off"}">${T(d.online?"admin.devOnline":"admin.devOffline")}</span>
+        <button class="btn ghost" onclick="addDiscovered(this)">${T("admin.add")}</button>
       </div>`).join("");
     box.classList.remove("hidden");
     res.className = "result";
   } catch(e){
-    if (e.message !== "unauthorized") showResult(res, false, "Ошибка: " + e.message);
-  } finally { btn.disabled = false; btn.textContent = "Найти в аккаунте"; }
+    if (e.message !== "unauthorized") showResult(res, false, T("common.error", { msg: e.message }));
+  } finally { btn.disabled = false; btn.textContent = T("admin.discoverBtn"); }
 }
 function addDiscovered(btn){
   const item = btn.closest(".disc-item");
   const id = item.dataset.id, name = item.dataset.name;
-  if (deviceExists(id)){ btn.textContent = "уже добавлено"; btn.disabled = true; return; }
+  if (deviceExists(id)){ btn.textContent = T("admin.already"); btn.disabled = true; return; }
   addDeviceRow(name, id);
-  btn.textContent = "добавлено"; btn.disabled = true;
+  btn.textContent = T("admin.added"); btn.disabled = true;
 }
 function addAllDiscovered(){
   document.querySelectorAll("#discoverList .disc-item").forEach(item => {
     if (!deviceExists(item.dataset.id)) addDeviceRow(item.dataset.name, item.dataset.id);
   });
-  showToast("Устройства добавлены в список — не забудьте сохранить.");
+  showToast(T("admin.addedToast"));
 }
 
 /* ---------------- Проверка / сохранение ---------------- */
 async function testConnection(){
-  const btn = $("testBtn"); btn.disabled = true; btn.textContent = "Проверка…";
+  const btn = $("testBtn"); btn.disabled = true; btn.textContent = T("admin.testing");
   try {
     const data = await api("/api/admin/test-connection", "POST", {
       access_id: $("access_id").value.trim(),
@@ -543,8 +606,8 @@ async function testConnection(){
     });
     showResult($("testResult"), data.ok, data.message);
   } catch(e){
-    if (e.message !== "unauthorized") showResult($("testResult"), false, "Ошибка: " + e.message);
-  } finally { btn.disabled = false; btn.textContent = "Проверить подключение"; }
+    if (e.message !== "unauthorized") showResult($("testResult"), false, T("common.error", { msg: e.message }));
+  } finally { btn.disabled = false; btn.textContent = T("admin.testBtn"); }
 }
 
 async function saveSettings(){
@@ -555,6 +618,7 @@ async function saveSettings(){
     poll_interval: parseInt($("poll_interval").value) || 10,
     demo_mode: $("demo_mode").checked,
     theme: $("theme").value,
+    language: $("language").value,
     devices: collectDevices(),
     telegram: collectTelegram(),
   };
@@ -562,11 +626,11 @@ async function saveSettings(){
   if (key) payload.access_key = key;
   try {
     await api("/api/admin/settings", "POST", payload);
-    showToast("Сохранено");
+    showToast(T("admin.saved"));
     $("access_key").value = "";
     load();
   } catch(e){
-    if (e.message !== "unauthorized") showToast("Ошибка: " + e.message);
+    if (e.message !== "unauthorized") showToast(T("common.error", { msg: e.message }));
   } finally { btn.disabled = false; }
 }
 
@@ -579,7 +643,7 @@ async function savePassword(){
     });
     if (data.token) setToken(data.token);
     $("new_pw").value = ""; $("cur_pw").value = "";
-    showResult(res, true, "Пароль сохранён.");
+    showResult(res, true, T("admin.pwSaved"));
     load();
   } catch(e){
     if (e.message !== "unauthorized") showResult(res, false, e.message);
@@ -591,23 +655,35 @@ function showLogin(){ $("loginOverlay").classList.remove("hidden"); $("login_pw"
 async function doLogin(){
   const err = $("loginErr"); err.classList.remove("show");
   try {
-    const resp = await fetch("/api/admin/login", {
+    const resp = await bmFetch("/api/admin/login", {
       method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({ password: $("login_pw").value }),
     });
     const data = await resp.json();
-    if (!resp.ok){ err.textContent = data.detail || "Ошибка входа"; err.classList.add("show"); return; }
+    if (!resp.ok){ err.textContent = data.detail || T("admin.loginError"); err.classList.add("show"); return; }
     setToken(data.token || "");
     $("login_pw").value = "";
     load();
-  } catch(e){ err.textContent = "Ошибка: " + e.message; err.classList.add("show"); }
+  } catch(e){ err.textContent = T("common.error", { msg: e.message }); err.classList.add("show"); }
 }
 function logout(){ setToken(""); location.reload(); }
 
 function showToast(msg){ $("saveMsg").textContent = msg; clearTimeout(window._t);
   window._t = setTimeout(()=>{ $("saveMsg").textContent=""; }, 4000); }
 
+/* Сменили язык — обновляем подписи, которые зависят ещё и от состояния настроек.
+   Значения полей и несохранённые правки при этом сохраняются. */
+BMI18n.onChange(() => {
+  renderThemeLocal();
+  renderLangLocal();
+  renderSecurity();
+  renderKeyHint();
+  renderTgTokenHint();
+  $("saveMsg").textContent = "";
+});
+
 initTheme();
+initLang();
 load();
 </script>
 </body>

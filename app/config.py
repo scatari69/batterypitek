@@ -33,6 +33,9 @@ class Settings:
     # Оформление по умолчанию (bootstrap); допустимые значения — THEMES в app/store.py.
     theme: str = os.getenv("THEME", "").strip()
 
+    # Язык по умолчанию (bootstrap); допустимые значения — LANGS в app/i18n.py.
+    language: str = os.getenv("LANGUAGE", "").strip()
+
     # Каталог для постоянных настроек (settings.json).
     data_dir: str = os.getenv("DATA_DIR", "data").strip()
 
