@@ -31,7 +31,8 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title="Battery Monitor", version="3.1.0", lifespan=lifespan)
 
-# Общая пиксельная тема страниц: /static/pixel.css и /static/pixel.js.
+# Общая пиксельная тема страниц: /static/pixel.css и /static/pixel.js,
+# выбор оформления (Пиксель / Dracula) — /static/theme.js, гарнитуры — /static/fonts.
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # Кэш спецификаций по device_id.

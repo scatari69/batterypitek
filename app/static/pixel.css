@@ -1,12 +1,43 @@
 /* ==========================================================================
    Battery Monitor — общая пиксельная тема для всех страниц.
 
-   Тёмная тема — приборный VFD-дисплей (бирюзовое свечение на чёрной панели),
-   светлая — монохромный LCD, как у бытовых тестеров ёмкости.
+   Наборов тем два, у каждого светлый и тёмный вариант:
+
+   • «Пиксель» (по умолчанию) — приборный VFD-дисплей (бирюзовое свечение
+     на чёрной панели) и монохромный LCD, как у бытовых тестеров ёмкости;
+     поверх всего идёт развёртка строк дисплея.
+   • «Dracula» — палитра Dracula и её светлый вариант Alucard, гарнитура
+     Meslo LG, без построчной развёртки.
+
+   Конкретный вариант ставит theme.js в атрибут data-theme на <html>:
+   pixel-dark · pixel-light · dracula-dark · dracula-light.
+   Вся вёрстка ниже работает только с токенами и от набора не зависит.
    Всё построено на сетке в 2 px: рамки, отступы, шрифтовые размеры.
    ========================================================================== */
 
+/* Meslo LG M — подмножество (латиница, кириллица, знаки показаний).
+   Apache License 2.0, © André Berg; полный текст — /static/fonts/LICENSE.txt.
+   Установленная в системе гарнитура имеет приоритет над загрузкой. */
+@font-face {
+  font-family:"Meslo LG M";
+  src:local("Meslo LG M"), local("MesloLGM-Regular"), local("MesloLGM Nerd Font Mono"),
+      local("MesloLGS NF"), url("/static/fonts/MesloLGM-Regular.woff2") format("woff2");
+  font-weight:400; font-style:normal; font-display:swap;
+}
+@font-face {
+  font-family:"Meslo LG M";
+  src:local("Meslo LG M Bold"), local("MesloLGM-Bold"), local("MesloLGM Nerd Font Mono Bold"),
+      local("MesloLGS NF Bold"), url("/static/fonts/MesloLGM-Bold.woff2") format("woff2");
+  font-weight:700; font-style:normal; font-display:swap;
+}
+
 :root {
+  --px:2px;
+  --mono:ui-monospace,"DejaVu Sans Mono","Liberation Mono",Menlo,Consolas,monospace;
+}
+
+/* ------------------------------------------------------ Набор «Пиксель» -- */
+:root, [data-theme="pixel-dark"] {
   color-scheme: dark;
   --void:#0b0e14;      /* фон корпуса */
   --panel:#141b28;     /* панель */
@@ -20,13 +51,20 @@
   --red:#ff6259;       /* тревога */
   --scan:rgba(255,255,255,.045);
   --drop:rgba(0,0,0,.55);
-
-  --px:2px;
-  --mono:ui-monospace,"DejaVu Sans Mono","Liberation Mono",Menlo,Consolas,monospace;
 }
 
+[data-theme="pixel-light"] {
+  color-scheme: light;
+  --void:#c6d1bd; --panel:#dae2cf; --panel-2:#bcc9ae; --edge:#6b7a61;
+  --ink:#0f1710; --dim:#4a5646;
+  --teal:#0a6553; --lime:#3b7615; --amber:#8a5000; --red:#a3160e;
+  --scan:rgba(0,0,0,.05);
+  --drop:rgba(0,0,0,.22);
+}
+
+/* Запасной путь, если theme.js не отработал: набор «Пиксель» по системе. */
 @media (prefers-color-scheme: light) {
-  :root {
+  :root:not([data-theme]) {
     color-scheme: light;
     --void:#c6d1bd; --panel:#dae2cf; --panel-2:#bcc9ae; --edge:#6b7a61;
     --ink:#0f1710; --dim:#4a5646;
@@ -34,6 +72,34 @@
     --scan:rgba(0,0,0,.05);
     --drop:rgba(0,0,0,.22);
   }
+}
+
+/* ------------------------------------------------------ Набор «Dracula» -- */
+/* Тёмный — канонические цвета Dracula, светлый — официальный Alucard. */
+[data-theme="dracula-dark"] {
+  color-scheme: dark;
+  --void:#21222c; --panel:#282a36; --panel-2:#343746; --edge:#6272a4;
+  --ink:#f8f8f2; --dim:#8b95c9;
+  --teal:#8be9fd;      /* cyan */
+  --lime:#50fa7b;      /* green */
+  --amber:#ffb86c;     /* orange */
+  --red:#ff5555;       /* red */
+  --scan:transparent;
+  --drop:rgba(0,0,0,.55);
+}
+
+[data-theme="dracula-light"] {
+  color-scheme: light;
+  --void:#f0ecdc; --panel:#fffbeb; --panel-2:#e4dfcc; --edge:#6c664b;
+  --ink:#1f1f1f; --dim:#6c664b;
+  --teal:#036a96; --lime:#14710a; --amber:#a34d14; --red:#cb3a2a;
+  --scan:transparent;
+  --drop:rgba(31,31,31,.22);
+}
+
+[data-theme^="dracula"] {
+  --mono:"Meslo LG M","Meslo LG S","Meslo LG L",ui-monospace,"DejaVu Sans Mono",
+         "Liberation Mono",Menlo,Consolas,monospace;
 }
 
 * { box-sizing:border-box; }
@@ -47,11 +113,13 @@ body {
   font-family:var(--mono); font-size:13px; line-height:1.5;
 }
 
-/* Развёртка «строк дисплея» — статичная, поверх всего. */
+/* Развёртка «строк дисплея» — статичная, поверх всего.
+   В наборе «Dracula» построчных эффектов нет: панель ровная. */
 body::after {
   content:""; position:fixed; inset:0; z-index:90; pointer-events:none;
   background:repeating-linear-gradient(180deg,var(--scan) 0 1px,transparent 1px 3px);
 }
+[data-theme^="dracula"] body::after { content:none; }
 
 svg { image-rendering:pixelated; }
 a { color:var(--teal); }
@@ -105,6 +173,20 @@ a { color:var(--teal); }
 .btn.danger:hover { color:var(--red); }
 
 :focus-visible { outline:var(--px) solid var(--teal); outline-offset:var(--px); }
+
+/* Выбор оформления — рисует theme.js в местах с [data-theme-picker]. */
+.theme-pick {
+  font:inherit; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+  font-weight:700; color:var(--dim); background-color:var(--panel-2); border:0;
+  width:auto; padding:8px 26px 8px 11px; cursor:pointer; appearance:none;
+  box-shadow:inset 0 0 0 var(--px) var(--edge);
+  background-image:linear-gradient(45deg,transparent 50%,var(--dim) 50%),
+                   linear-gradient(135deg,var(--dim) 50%,transparent 50%);
+  background-position:calc(100% - 14px) 15px, calc(100% - 8px) 15px;
+  background-size:6px 6px, 6px 6px; background-repeat:no-repeat;
+}
+.theme-pick:hover { color:var(--ink); }
+.theme-pick:focus-visible { outline-offset:calc(-1*var(--px)); }
 
 /* --------------------------------------------------------- Шкала заряда -- */
 /* Десять сегментов: заливка идёт ступенями, поверх — «прорези» между делениями. */
