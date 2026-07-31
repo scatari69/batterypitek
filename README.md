@@ -1,6 +1,6 @@
 # 🔋 Battery Monitor — Tuya (DT20W)
 
-[![License: MIT](https://img.shields.io/github/license/scatari69/batterypitek?color=green)](LICENSE)
+[![License: AGPL v3](https://img.shields.io/github/license/scatari69/batterypitek?color=green)](LICENSE)
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
@@ -389,4 +389,13 @@ battery-monitor/
 
 ## Лицензия
 
-[MIT](LICENSE) © 2026 scatari69
+[GNU AGPL-3.0](LICENSE) © 2026 scatari69
+
+Копилефт с сетевой оговоркой (§13): если вы разворачиваете изменённую версию и
+даёте к ней доступ по сети, исходники изменений нужно предоставить её
+пользователям. Для личного использования без публикации изменений ничего делать
+не нужно.
+
+Гарнитура Meslo LG M в `app/static/fonts/` распространяется под
+[Apache License 2.0](app/static/fonts/LICENSE.txt), © 2009, 2010, 2013 André Berg —
+она совместима с AGPL-3.0 и остаётся под своей лицензией.
