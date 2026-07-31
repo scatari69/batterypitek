@@ -98,7 +98,7 @@
       <span class="label" data-i18n="index.thSoc">Заряд</span>
       <span></span>
       <span class="label" data-i18n="index.thState">Режим</span>
-      <span class="label" id="thEta"></span>
+      <span class="label" data-i18n="index.thEta">ETA</span>
       <span class="label" data-i18n="index.thReads">Напряжение · ток</span>
     </div>
     <div class="rule"></div>
@@ -206,10 +206,9 @@ function setSource(url) {
   if (url) a.href = url;
 }
 
-/* Целевой уровень мог смениться в админке — заголовок столбца идёт следом. */
+/* Целевой уровень мог смениться в админке — подписи в столбце ETA идут следом. */
 function setTarget(pct) {
   if (typeof pct === "number") targetSoc = pct;
-  $("thEta").textContent = T("index.thEta", { pct: targetSoc });
 }
 
 function showEmpty() {
@@ -248,10 +247,9 @@ async function tick() {
   try { await refresh(); } finally { setTimeout(tick, pollInterval * 1000); }
 }
 
-/* Сменили язык — переводим заголовок таблицы и перерисовываем последний ответ.
+/* Сменили язык — перерисовываем последний ответ.
    Имена демо-устройств приходят с сервера, поэтому список ещё и перезапрашиваем. */
 BMI18n.onChange(() => {
-  setTarget();
   renderSub();
   if (lastData) render(lastData);
   refresh();

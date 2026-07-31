@@ -114,7 +114,7 @@ function socLevel(p) { return p < 20 ? "low" : p < 50 ? "warn" : "ok"; }
 /* Режим работы: спрайт и цвет; подпись — pxState(). */
 const PX_STATE = {
   charging:    { sprite:"up",   cls:"t-charge" },
-  discharging: { sprite:"down", cls:"t-ok" },
+  discharging: { sprite:"down", cls:"t-low" },
   idle:        { sprite:"idle", cls:"t-dim" },
   unknown:     { sprite:"idle", cls:"t-dim" },
 };
