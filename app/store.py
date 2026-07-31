@@ -17,7 +17,11 @@ from .devices import Device, load_devices
 from .tuya_client import TuyaClient
 
 _ALLOWED_UPDATE = {"access_id", "access_key", "endpoint", "poll_interval", "demo_mode", "devices",
-                   "telegram", "theme", "language"}
+                   "telegram", "theme", "language", "target_soc"}
+
+# Целевой уровень заряда, %: до него считается оставшееся время на дашборде,
+# он же порог уведомления о низком заряде в Telegram.
+TARGET_SOC_BOUNDS = (1, 99)
 
 # Оформление по умолчанию: набор тем + режим (см. app/static/theme.js).
 # Браузер может переопределить выбор локально — тогда эта настройка на него не влияет.
@@ -31,8 +35,7 @@ TELEGRAM_DEFAULTS = {
     "bot_token": "",
     "chat_id": "",
     "check_interval": 60,      # с — как часто проверять пороги
-    "notify_low_soc": True,    # заряд опустился ниже порога
-    "soc_threshold": 30,       # % — порог заряда (он же цель для оценки времени)
+    "notify_low_soc": True,    # заряд опустился ниже порога (target_soc)
     "notify_low_eta": True,    # до порога осталось меньше eta_threshold минут
     "eta_threshold": 60,       # мин
     "notify_recovery": True,   # сообщение «отбой» при возврате в норму
@@ -42,7 +45,6 @@ TELEGRAM_DEFAULTS = {
 
 _TG_BOUNDS = {  # ключ -> (минимум, максимум)
     "check_interval": (15, 3600),
-    "soc_threshold": (1, 99),
     "eta_threshold": (1, 10080),
     "repeat_minutes": (0, 10080),
 }
@@ -96,6 +98,13 @@ class Store:
             if settings.admin_password and not self._data.get("admin_password_hash"):
                 self._data["admin_password_hash"] = auth.hash_password(settings.admin_password)
                 changed = True
+            # Миграция: порог заряда переехал из настроек Telegram в общие —
+            # переносим сохранённое значение, чтобы уведомления не поехали.
+            if "target_soc" not in self._data:
+                legacy = (self._data.get("telegram") or {}).get("soc_threshold")
+                if legacy is not None:
+                    self._data["target_soc"] = legacy
+                    changed = True
             # Первичное заполнение списка устройств из env/yaml (не в демо-режиме).
             if "devices" not in self._data and not self._effective_demo():
                 seeded = [{"id": d.id, "name": d.name} for d in load_devices()]
@@ -149,6 +158,18 @@ class Store:
             if value in THEMES:
                 return value
         return THEME_DEFAULT
+
+    @property
+    def target_soc(self) -> int:
+        """Целевой уровень заряда, %: цель оценки времени на дашборде и в
+        уведомлениях, он же порог сообщения о низком заряде."""
+        lo, hi = TARGET_SOC_BOUNDS
+        for value in (self._data.get("target_soc"), settings.target_soc):
+            try:
+                return max(lo, min(hi, int(value)))
+            except (TypeError, ValueError):
+                continue
+        return 30
 
     @property
     def language(self) -> str:
@@ -244,6 +265,12 @@ class Store:
                     if not code:
                         continue
                     value = code
+                if key == "target_soc":
+                    lo, hi = TARGET_SOC_BOUNDS
+                    try:
+                        value = max(lo, min(hi, int(value)))
+                    except (TypeError, ValueError):
+                        continue
                 self._data[key] = value
             self._client = None  # пересобрать клиент под новые реквизиты
             self._save_unlocked()
@@ -274,6 +301,7 @@ class Store:
             "use_demo": self.use_demo,
             "theme": self.theme,
             "language": self.language,
+            "target_soc": self.target_soc,
             "has_key": bool(ak),
             "key_hint": ("••••" + ak[-4:]) if len(ak) >= 4 else ("••••" if ak else ""),
             # Список для редактора — сохранённая конфигурация, а не демо-устройства.

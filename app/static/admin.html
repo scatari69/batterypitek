@@ -175,6 +175,12 @@
     <h2 data-i18n="admin.general">Общие параметры</h2>
     <label data-i18n="admin.poll">Интервал опроса, секунд</label>
     <input type="number" id="poll_interval" min="3" max="600" style="max-width:160px">
+
+    <label data-i18n="admin.targetSoc">Целевой уровень заряда, %</label>
+    <input type="number" id="target_soc" min="1" max="99" style="max-width:160px"
+      oninput="renderTgSocRef()">
+    <div class="hint" data-i18n="admin.targetSocHint"></div>
+
     <div class="toggle">
       <input type="checkbox" id="demo_mode">
       <span class="t" data-i18n="admin.demoMode"></span>
@@ -237,9 +243,7 @@
     <div class="result" id="tgChatsResult"></div>
     <div class="discover hidden" id="tgChatsList"></div>
 
-    <label data-i18n="admin.tgSoc">Порог заряда, %</label>
-    <input type="number" id="tg_soc_threshold" min="1" max="99" style="max-width:160px">
-    <div class="hint" data-i18n="admin.tgSocHint"></div>
+    <div class="hint" id="tgSocRef" style="margin-top:16px"></div>
 
     <div class="toggle">
       <input type="checkbox" id="tg_notify_low_soc">
@@ -366,7 +370,9 @@ async function load(){
   renderKeyHint();
   if (s.endpoint) $("endpoint").value = s.endpoint;
   $("poll_interval").value = s.poll_interval || 10;
+  $("target_soc").value = s.target_soc ?? 30;
   $("demo_mode").checked = !!s.demo_mode;
+  renderTgSocRef();
 
   BMTheme.setDefault(s.theme);
   $("theme").value = BMTheme.defaultTheme();
@@ -384,6 +390,12 @@ async function load(){
 function renderSecurity(){
   $("secDesc").textContent = T(authEnabled ? "admin.securitySet" : "admin.securityNone");
   $("pwBtn").textContent = T(authEnabled ? "admin.pwChange" : "admin.pwSet");
+}
+
+/* Карточка Telegram ссылается на общий порог — показываем его текущее значение
+   прямо из поля, чтобы связь была видна ещё до сохранения. */
+function renderTgSocRef(){
+  $("tgSocRef").textContent = T("admin.tgSocRef", { pct: $("target_soc").value || "—" });
 }
 
 function renderKeyHint(){
@@ -442,7 +454,6 @@ function loadTelegram(tg){
   $("tg_bot_token").value = "";
   renderTgTokenHint();
   $("tg_chat_id").value = tg.chat_id || "";
-  $("tg_soc_threshold").value = tg.soc_threshold ?? 30;
   $("tg_eta_threshold").value = tg.eta_threshold ?? 60;
   $("tg_check_interval").value = tg.check_interval ?? 60;
   $("tg_repeat_minutes").value = tg.repeat_minutes ?? 0;
@@ -457,7 +468,6 @@ function collectTelegram(){
   const tg = {
     enabled: $("tg_enabled").checked,
     chat_id: $("tg_chat_id").value.trim(),
-    soc_threshold: parseInt($("tg_soc_threshold").value) || 30,
     eta_threshold: parseInt($("tg_eta_threshold").value) || 60,
     check_interval: parseInt($("tg_check_interval").value) || 60,
     repeat_minutes: parseInt($("tg_repeat_minutes").value) || 0,
@@ -616,6 +626,7 @@ async function saveSettings(){
     access_id: $("access_id").value.trim(),
     endpoint: $("endpoint").value,
     poll_interval: parseInt($("poll_interval").value) || 10,
+    target_soc: parseInt($("target_soc").value) || 30,
     demo_mode: $("demo_mode").checked,
     theme: $("theme").value,
     language: $("language").value,
@@ -679,6 +690,7 @@ BMI18n.onChange(() => {
   renderSecurity();
   renderKeyHint();
   renderTgTokenHint();
+  renderTgSocRef();
   $("saveMsg").textContent = "";
 });
 

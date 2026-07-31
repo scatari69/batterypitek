@@ -119,7 +119,7 @@
 <script>
 const $ = id => document.getElementById(id);
 const T = (key, vars) => BMI18n.t(key, vars);
-const ETA_PCT = 30;          /* цель оценки времени в /api/devices (eta_30) */
+let targetSoc = 30;          /* целевой уровень заряда из настроек (админка) */
 let pollInterval = 15;
 let lastData = null;         /* последний ответ — чтобы перерисовать при смене языка */
 let deviceCount = 0;
@@ -129,7 +129,7 @@ function etaCell(dev) {
     return `<span class="eta t-charge">${T("index.etaCharging")}</span>`;
   const note = dev.eta_note;
   if (note === "at_or_below")
-    return `<span class="eta t-warn">${T("index.etaAtOrBelow", { pct: ETA_PCT })}</span>`;
+    return `<span class="eta t-warn">${T("index.etaAtOrBelow", { pct: targetSoc })}</span>`;
   if (note === "ok") {
     const d = fmtDuration(dev.eta_minutes);
     return `<span class="eta">${d ? "≈ " + d : "—"}</span>`;
@@ -180,12 +180,19 @@ async function loadConfig() {
     pollInterval = Math.max(10, c.poll_interval || 15);
     $("demoBadge").hidden = !c.demo_mode;
     deviceCount = (c.devices || []).length;
+    setTarget(c.target_soc);
     renderSub();
   } catch (e) { $("sub").textContent = T("common.noServer"); }
 }
 
 function renderSub() {
   $("sub").textContent = `${deviceCount} ${BMI18n.plural(deviceCount, "devices")}`;
+}
+
+/* Целевой уровень мог смениться в админке — заголовок столбца идёт следом. */
+function setTarget(pct) {
+  if (typeof pct === "number") targetSoc = pct;
+  $("thEta").textContent = T("index.thEta", { pct: targetSoc });
 }
 
 function showEmpty() {
@@ -197,6 +204,7 @@ function showEmpty() {
 }
 
 function render(data) {
+  setTarget(data.target_soc);
   const list = data.devices || [];
   if (!list.length) { showEmpty(); $("list").innerHTML = ""; }
   else {
@@ -226,14 +234,14 @@ async function tick() {
 /* Сменили язык — переводим заголовок таблицы и перерисовываем последний ответ.
    Имена демо-устройств приходят с сервера, поэтому список ещё и перезапрашиваем. */
 BMI18n.onChange(() => {
-  $("thEta").textContent = T("index.thEta", { pct: ETA_PCT });
+  setTarget();
   renderSub();
   if (lastData) render(lastData);
   refresh();
 });
 
 $("logo").innerHTML = pixelBattery(2);
-$("thEta").textContent = T("index.thEta", { pct: ETA_PCT });
+setTarget();
 (async function init() { await loadConfig(); tick(); })();
 </script>
 </body>

@@ -168,7 +168,8 @@ class Watcher(threading.Thread):
 
     # --- проверка порогов ---
     def _cycle(self, cfg: dict):
-        soc_limit = float(cfg.get("soc_threshold") or 0)
+        # Порог заряда общий для всего приложения (админка → «Общие параметры»).
+        soc_limit = float(self._store.target_soc)
         eta_limit = float(cfg.get("eta_threshold") or 0)
         lang = getattr(self._store, "language", i18n.LANG_DEFAULT)
         known: set[str] = set()

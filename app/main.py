@@ -96,7 +96,8 @@ def _fetch_normalized(device_id: str, lang: str | None = None) -> dict:
             pass
 
     data = metrics.normalize(status, spec)
-    data["eta_30"] = metrics.estimate_time_to_pct(data, 30)
+    data["target_soc"] = store.target_soc
+    data["eta"] = metrics.estimate_time_to_pct(data, data["target_soc"])
     data["id"] = device_id
     dev = store.device_map(lang).get(device_id)
     data["name"] = dev.name if dev else device_id
@@ -149,6 +150,7 @@ def api_config(lang: str = Depends(req_lang)):
         "endpoint": store.endpoint,
         "theme": store.theme,
         "language": store.language,
+        "target_soc": store.target_soc,
         "devices": [{"id": d.id, "name": d.name} for d in store.devices(lang)],
     }
 
@@ -162,7 +164,7 @@ def api_devices(lang: str = Depends(req_lang)):
             data = _fetch_normalized(dev.id, lang)
             primary = data["primary"]
             soc, volt, cur = primary.get("soc"), primary.get("voltage"), primary.get("current")
-            eta = data.get("eta_30") or {}
+            eta = data.get("eta") or {}
             item.update(
                 soc=soc["value"] if soc else None,
                 state=data["state"],
@@ -178,7 +180,8 @@ def api_devices(lang: str = Depends(req_lang)):
         except Exception as exc:  # noqa: BLE001
             item.update(online=False, error=i18n.t(lang, "err.generic", msg=exc))
         out.append(item)
-    return {"devices": out, "timestamp": int(time.time() * 1000), "demo": store.use_demo}
+    return {"devices": out, "timestamp": int(time.time() * 1000), "demo": store.use_demo,
+            "target_soc": store.target_soc}
 
 
 @app.get("/api/status")
@@ -244,7 +247,7 @@ def admin_get_settings(_: bool = Depends(require_admin)):
 def admin_save_settings(payload: dict = Body(...), _: bool = Depends(require_admin)):
     patch: dict = {}
     for key in ("access_id", "endpoint", "demo_mode", "poll_interval", "devices", "telegram",
-                "theme", "language"):
+                "theme", "language", "target_soc"):
         if key in payload:
             patch[key] = payload[key]
     if payload.get("access_key"):

@@ -149,6 +149,8 @@
 
         general: "Общие параметры",
         poll: "Интервал опроса, секунд",
+        targetSoc: "Целевой уровень заряда, %",
+        targetSocHint: "До этого уровня считается оставшееся время: «До N %» в списке батарей и на странице устройства. Он же — порог уведомления о низком заряде в Telegram.",
         demoMode: "Демо-режим (сгенерированные данные без обращения к Tuya)",
 
         appearance: "Оформление",
@@ -179,8 +181,7 @@
         tgChatHint: "Личный чат — положительное число, группа/канал — начинается с «−100».",
         tgChatPick: "Выбрать",
         tgChatPicked: "ID чата подставлен — не забудьте сохранить.",
-        tgSoc: "Порог заряда, %",
-        tgSocHint: "Общий порог: и для уведомления о низком заряде, и как цель для оценки времени.",
+        tgSocRef: "Порогом служит целевой уровень заряда из «Общих параметров» — сейчас {pct} %.",
         tgLowSoc: "Заряд опустился ниже порога",
         tgLowEta: "До порога осталось меньше, минут:",
         tgRecovery: "Сообщать о возврате в норму («отбой»)",
@@ -384,6 +385,8 @@
 
         general: "Загальні параметри",
         poll: "Інтервал опитування, секунд",
+        targetSoc: "Цільовий рівень заряду, %",
+        targetSocHint: "До цього рівня рахується час, що лишився: «До N %» у списку батарей і на сторінці пристрою. Він же — поріг сповіщення про низький заряд у Telegram.",
         demoMode: "Демо-режим (згенеровані дані без звернення до Tuya)",
 
         appearance: "Оформлення",
@@ -414,8 +417,7 @@
         tgChatHint: "Особистий чат — додатне число, група/канал — починається з «−100».",
         tgChatPick: "Обрати",
         tgChatPicked: "ID чату підставлено — не забудьте зберегти.",
-        tgSoc: "Поріг заряду, %",
-        tgSocHint: "Спільний поріг: і для сповіщення про низький заряд, і як ціль для оцінки часу.",
+        tgSocRef: "Порогом слугує цільовий рівень заряду із «Загальних параметрів» — зараз {pct} %.",
         tgLowSoc: "Заряд опустився нижче порога",
         tgLowEta: "До порога лишилося менше, хвилин:",
         tgRecovery: "Повідомляти про повернення в норму («відбій»)",
@@ -619,6 +621,8 @@
 
         general: "General",
         poll: "Poll interval, seconds",
+        targetSoc: "Target charge level, %",
+        targetSocHint: "Remaining time is estimated down to this level: “To N %” in the battery list and on the device page. It is also the low-charge threshold for Telegram notifications.",
         demoMode: "Demo mode (generated data, no calls to Tuya)",
 
         appearance: "Appearance",
@@ -649,8 +653,7 @@
         tgChatHint: "A private chat is a positive number; a group or channel starts with “−100”.",
         tgChatPick: "Pick",
         tgChatPicked: "Chat ID filled in — don't forget to save.",
-        tgSoc: "Charge threshold, %",
-        tgSocHint: "One threshold: both for the low-charge alert and as the target for the time estimate.",
+        tgSocRef: "The threshold is the target charge level from “General” — currently {pct} %.",
         tgLowSoc: "Charge dropped below the threshold",
         tgLowEta: "Less time left to the threshold, minutes:",
         tgRecovery: "Report the return to normal (all clear)",

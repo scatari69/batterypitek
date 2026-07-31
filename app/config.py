@@ -16,6 +16,13 @@ def _get_bool(name: str, default: bool = False) -> bool:
     return os.getenv(name, str(default)).strip().lower() in ("1", "true", "yes", "on")
 
 
+def _get_int(name: str, default: int) -> int:
+    try:
+        return int(os.getenv(name, "").strip() or default)
+    except ValueError:
+        return default
+
+
 class Settings:
     # --- Учётные данные Tuya IoT Platform (bootstrap) ---
     access_id: str = os.getenv("TUYA_ACCESS_ID", "").strip()
@@ -27,8 +34,12 @@ class Settings:
     device_id: str = os.getenv("TUYA_DEVICE_ID", "").strip()
     device_name: str = os.getenv("TUYA_DEVICE_NAME", "Батарея").strip()
 
-    poll_interval: int = int(os.getenv("POLL_INTERVAL", "10"))
+    poll_interval: int = _get_int("POLL_INTERVAL", 10)
     demo_mode: bool = _get_bool("DEMO_MODE", False)
+
+    # Целевой уровень заряда, % (bootstrap): до него считается оставшееся время
+    # на дашборде, он же порог уведомления о низком заряде.
+    target_soc: int = _get_int("TARGET_SOC", 30)
 
     # Оформление по умолчанию (bootstrap); допустимые значения — THEMES в app/store.py.
     theme: str = os.getenv("THEME", "").strip()

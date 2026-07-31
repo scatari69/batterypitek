@@ -143,7 +143,7 @@ const $ = id => document.getElementById(id);
 const T = (key, vars) => BMI18n.t(key, vars);
 const DEVICE_ID = decodeURIComponent((location.pathname.split("/").filter(Boolean).pop()) || "");
 const HISTORY_MAX = 90;
-const ETA_PCT = 30;          /* цель оценки времени в /api/status (eta_30) */
+let targetSoc = 30;          /* целевой уровень заряда из настроек (админка) */
 let history = [];
 let pollInterval = 10;
 let chartMeta = { unit:"", role:"" };
@@ -172,6 +172,7 @@ async function loadConfig() {
     BMTheme.setDefault(c.theme);
     BMI18n.setDefault(c.language);
     pollInterval = c.poll_interval || 10;
+    if (typeof c.target_soc === "number") targetSoc = c.target_soc;
     $("demoBadge").hidden = !c.demo_mode;
     const dev = (c.devices || []).find(d => d.id === DEVICE_ID);
     if (dev) $("devName").textContent = dev.name;
@@ -194,13 +195,13 @@ function setConn(online, err) {
 function etaText(eta) {
   if (!eta) return "";
   if (eta.note === "at_or_below")
-    return `<span class="t-warn">${T("device.etaAtOrBelow", { pct: ETA_PCT })}</span>`;
+    return `<span class="t-warn">${T("device.etaAtOrBelow", { pct: targetSoc })}</span>`;
   if (eta.note === "not_discharging")
     return `<span class="t-dim">${T("device.etaNotDischarging")}</span>`;
   if (eta.note === "no_data")
     return `<span class="t-dim">${T("device.etaNoData")}</span>`;
   const d = fmtDuration(eta.minutes);
-  return d ? T("device.eta", { pct: ETA_PCT, dur: d }) : "";
+  return d ? T("device.eta", { pct: targetSoc, dur: d }) : "";
 }
 
 function tileHtml(m) {
@@ -216,6 +217,7 @@ function tileHtml(m) {
 /* fresh — новый ответ сервера (точку в историю графика добавляем только тогда,
    при перерисовке из-за смены языка график остаётся прежним). */
 function render(data, fresh = true) {
+  if (typeof data.target_soc === "number") targetSoc = data.target_soc;
   const metrics = data.metrics || [];
   const primary = data.primary || {};
   if (data.name) $("devName").textContent = data.name;
@@ -236,7 +238,7 @@ function render(data, fresh = true) {
   $("statePill").className = "state " + st.cls;
   $("statePill").innerHTML = pixelSprite(st.sprite, { scale:2 }) + " " + st.label;
 
-  $("etaLine").innerHTML = etaText(data.eta_30);
+  $("etaLine").innerHTML = etaText(data.eta);
 
   // Ёмкость и сопротивление
   const cap = metrics.find(m => m.role === "capacity" && m.cap_kind === "remaining")
