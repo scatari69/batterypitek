@@ -17,7 +17,13 @@ from .devices import Device, load_devices
 from .tuya_client import TuyaClient
 
 _ALLOWED_UPDATE = {"access_id", "access_key", "endpoint", "poll_interval", "demo_mode", "devices",
-                   "telegram"}
+                   "telegram", "theme"}
+
+# Оформление по умолчанию: набор тем + режим (см. app/static/theme.js).
+# Браузер может переопределить выбор локально — тогда эта настройка на него не влияет.
+THEMES = ("dracula-auto", "dracula-dark", "dracula-light",
+          "pixel-auto", "pixel-dark", "pixel-light")
+THEME_DEFAULT = THEMES[0]
 
 # Настройки уведомлений в Telegram (значения по умолчанию).
 TELEGRAM_DEFAULTS = {
@@ -138,6 +144,13 @@ class Store:
         return settings.demo_mode
 
     @property
+    def theme(self) -> str:
+        for value in (self._data.get("theme"), settings.theme):
+            if value in THEMES:
+                return value
+        return THEME_DEFAULT
+
+    @property
     def telegram(self) -> dict:
         return normalize_telegram(self._data.get("telegram"))
 
@@ -211,6 +224,8 @@ class Store:
                 if key == "telegram":
                     self._data[key] = self._merge_telegram(value)
                     continue
+                if key == "theme" and value not in THEMES:
+                    continue
                 self._data[key] = value
             self._client = None  # пересобрать клиент под новые реквизиты
             self._save_unlocked()
@@ -239,6 +254,7 @@ class Store:
             "poll_interval": self.poll_interval,
             "demo_mode": self.demo_mode,
             "use_demo": self.use_demo,
+            "theme": self.theme,
             "has_key": bool(ak),
             "key_hint": ("••••" + ak[-4:]) if len(ak) >= 4 else ("••••" if ak else ""),
             # Список для редактора — сохранённая конфигурация, а не демо-устройства.

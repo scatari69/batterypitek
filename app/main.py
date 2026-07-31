@@ -141,6 +141,7 @@ def api_config():
         "poll_interval": store.poll_interval,
         "demo_mode": store.use_demo,
         "endpoint": store.endpoint,
+        "theme": store.theme,
         "devices": [{"id": d.id, "name": d.name} for d in store.devices()],
     }
 
@@ -235,7 +236,8 @@ def admin_get_settings(_: bool = Depends(require_admin)):
 @app.post("/api/admin/settings")
 def admin_save_settings(payload: dict = Body(...), _: bool = Depends(require_admin)):
     patch: dict = {}
-    for key in ("access_id", "endpoint", "demo_mode", "poll_interval", "devices", "telegram"):
+    for key in ("access_id", "endpoint", "demo_mode", "poll_interval", "devices", "telegram",
+                "theme"):
         if key in payload:
             patch[key] = payload[key]
     if payload.get("access_key"):

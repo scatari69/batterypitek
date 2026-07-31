@@ -168,6 +168,7 @@ function row(dev) {
 async function loadConfig() {
   try {
     const c = await (await fetch("/api/config")).json();
+    BMTheme.setDefault(c.theme);
     pollInterval = Math.max(10, c.poll_interval || 15);
     $("demoBadge").hidden = !c.demo_mode;
     const n = (c.devices || []).length;

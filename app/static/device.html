@@ -166,6 +166,7 @@ function num(v, digits = 2) {
 async function loadConfig() {
   try {
     const c = await (await fetch("/api/config")).json();
+    BMTheme.setDefault(c.theme);
     pollInterval = c.poll_interval || 10;
     $("demoBadge").hidden = !c.demo_mode;
     const dev = (c.devices || []).find(d => d.id === DEVICE_ID);

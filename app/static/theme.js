@@ -1,31 +1,39 @@
 /* ==========================================================================
    Выбор оформления.
 
-   Наборов два — «Пиксель» (по умолчанию) и «Dracula»; у каждого светлый и
-   тёмный вариант плюс «Авто» по настройке системы. Выбор хранится в
-   localStorage и применяется до первой отрисовки: файл подключается в <head>
-   после pixel.css, поэтому переключения «на глазах» не видно.
+   Наборов два — «Dracula» (по умолчанию) и «Пиксель»; у каждого светлый и
+   тёмный вариант плюс «Авто» по настройке системы.
 
-   Токены цветов лежат в pixel.css, здесь только выбор варианта: атрибут
-   data-theme на <html> получает уже разрешённое значение (pixel-dark,
-   pixel-light, dracula-dark, dracula-light).
+   Источников выбора тоже два:
+   • тема по умолчанию — общая настройка из админ-панели (settings.json),
+     приезжает в /api/config и кэшируется в localStorage, чтобы применяться
+     сразу, до ответа сервера;
+   • локальный выбор — переключатель в шапке страницы. Он важнее общей
+     настройки и живёт только в этом браузере.
+
+   Файл подключается в <head> после pixel.css, поэтому тема встаёт до первой
+   отрисовки и переключения «на глазах» не видно. Токены цветов лежат в
+   pixel.css, здесь только выбор варианта: атрибут data-theme на <html>
+   получает уже разрешённое значение (pixel-dark, pixel-light, dracula-dark,
+   dracula-light).
    ========================================================================== */
 (function () {
   "use strict";
 
-  const KEY = "bm-theme";
-  const DEFAULT = "pixel-auto";
+  const KEY = "bm-theme";            /* локальный выбор в этом браузере */
+  const KEY_DEFAULT = "bm-theme-default";  /* кэш общей настройки с сервера */
+  const SHIPPED = "dracula-auto";    /* пока сервер не ответил и выбора нет */
 
-  /* Значение → подпись в списке. Порядок задаёт порядок пунктов. */
+  /* Значение → подпись. Порядок задаёт порядок пунктов в списках. */
   const CHOICES = [
-    ["pixel-auto",    "Пиксель · авто"],
-    ["pixel-dark",    "Пиксель · тёмная"],
-    ["pixel-light",   "Пиксель · светлая"],
     ["dracula-auto",  "Dracula · авто"],
     ["dracula-dark",  "Dracula · тёмная"],
     ["dracula-light", "Dracula · светлая"],
+    ["pixel-auto",    "Пиксель · авто"],
+    ["pixel-dark",    "Пиксель · тёмная"],
+    ["pixel-light",   "Пиксель · светлая"],
   ];
-  const VALID = new Set(CHOICES.map(c => c[0]));
+  const LABELS = new Map(CHOICES);
 
   /* Логотип-батарея 8×8 для favicon — перекрашивается вместе с темой. */
   const FAVICON = "<rect x='0' y='1' width='6' height='1'/><rect x='0' y='6' width='6' height='1'/>" +
@@ -34,17 +42,25 @@
 
   const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
   const pickers = [];
-  let pref = read();
+  const listeners = [];
 
-  function read() {
+  function read(key) {
     let v = null;
-    try { v = localStorage.getItem(KEY); } catch (e) { /* приватный режим */ }
-    return VALID.has(v) ? v : DEFAULT;
+    try { v = localStorage.getItem(key); } catch (e) { /* приватный режим */ }
+    return LABELS.has(v) ? v : null;
   }
 
-  function write(v) {
-    try { localStorage.setItem(KEY, v); } catch (e) { /* приватный режим */ }
+  function write(key, value) {
+    try {
+      if (value) localStorage.setItem(key, value);
+      else localStorage.removeItem(key);
+    } catch (e) { /* приватный режим */ }
   }
+
+  let local = read(KEY);
+  let fallback = read(KEY_DEFAULT) || SHIPPED;
+
+  const current = () => local || fallback;
 
   /* «Авто» разворачиваем в конкретный вариант — в CSS остаётся только он. */
   function resolve(value) {
@@ -64,16 +80,28 @@
   }
 
   function apply() {
-    document.documentElement.setAttribute("data-theme", resolve(pref));
+    document.documentElement.setAttribute("data-theme", resolve(current()));
     paintFavicon();
+    pickers.forEach(sel => { sel.value = current(); });
+    listeners.forEach(fn => fn());
   }
 
+  /* Выбор в шапке: только для этого браузера. null — вернуться к общей теме. */
   function select(value) {
-    if (!VALID.has(value) || value === pref) return;
-    pref = value;
-    write(pref);
+    const next = LABELS.has(value) ? value : null;
+    if (next === local) return;
+    local = next;
+    write(KEY, local);
     apply();
-    pickers.forEach(sel => { sel.value = pref; });
+  }
+
+  /* Общая тема из /api/config: применяем, если локального выбора нет. */
+  function setDefault(value) {
+    if (!LABELS.has(value)) return;
+    const changed = value !== fallback;
+    fallback = value;
+    write(KEY_DEFAULT, fallback);   /* пишем всегда: кэш должен пережить смену SHIPPED */
+    if (changed) apply();
   }
 
   /* Списки выбора появляются там, где в разметке стоит [data-theme-picker]. */
@@ -81,27 +109,37 @@
     document.querySelectorAll("[data-theme-picker]").forEach(host => {
       const sel = document.createElement("select");
       sel.className = "theme-pick";
-      sel.title = "Оформление";
+      sel.title = "Оформление в этом браузере";
       sel.setAttribute("aria-label", "Оформление");
       CHOICES.forEach(([value, label]) => sel.add(new Option(label, value)));
-      sel.value = pref;
+      sel.value = current();
       sel.addEventListener("change", () => select(sel.value));
       host.replaceChildren(sel);
       pickers.push(sel);
     });
   }
 
+  window.BMTheme = {
+    CHOICES: CHOICES,
+    label: value => LABELS.get(value) || value,
+    current: current,                 /* что показывается сейчас */
+    override: () => local,            /* локальный выбор или null */
+    defaultTheme: () => fallback,     /* общая тема (кэш серверной настройки) */
+    select: select,
+    reset: () => select(null),
+    setDefault: setDefault,
+    onChange: fn => { listeners.push(fn); },
+  };
+
   apply();
 
   /* Системная тема сменилась — «Авто» должно поехать следом. */
-  darkQuery.addEventListener("change", () => { if (pref.endsWith("-auto")) apply(); });
+  darkQuery.addEventListener("change", () => { if (current().endsWith("-auto")) apply(); });
 
   /* Соседняя вкладка переключила оформление. */
   window.addEventListener("storage", e => {
-    if (e.key !== KEY || !VALID.has(e.newValue)) return;
-    pref = e.newValue;
-    apply();
-    pickers.forEach(sel => { sel.value = pref; });
+    if (e.key === KEY) { local = read(KEY); apply(); }
+    else if (e.key === KEY_DEFAULT) { fallback = read(KEY_DEFAULT) || SHIPPED; apply(); }
   });
 
   if (document.readyState === "loading") {

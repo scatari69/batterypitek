@@ -30,6 +30,9 @@ class Settings:
     poll_interval: int = int(os.getenv("POLL_INTERVAL", "10"))
     demo_mode: bool = _get_bool("DEMO_MODE", False)
 
+    # Оформление по умолчанию (bootstrap); допустимые значения — THEMES в app/store.py.
+    theme: str = os.getenv("THEME", "").strip()
+
     # Каталог для постоянных настроек (settings.json).
     data_dir: str = os.getenv("DATA_DIR", "data").strip()
 

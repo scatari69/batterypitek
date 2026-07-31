@@ -175,6 +175,24 @@
     </div>
   </div>
 
+  <!-- Оформление -->
+  <div class="card">
+    <h2>Оформление</h2>
+    <p class="desc">Тема по умолчанию — её видят все браузеры, где оформление не меняли вручную.</p>
+
+    <label>Тема по умолчанию</label>
+    <select id="theme"></select>
+    <div class="hint">Наборов два: «Dracula» — палитра Dracula и светлая Alucard, гарнитура
+      Meslo, ровная панель; «Пиксель» — приборный VFD-дисплей и монохромный LCD с построчной
+      развёрткой. «Авто» переключает светлый и тёмный вариант по настройке системы.</div>
+
+    <div class="hint" id="themeLocal"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn ghost hidden" id="themeResetBtn" onclick="BMTheme.reset()">
+        Вернуть тему по умолчанию</button>
+    </div>
+  </div>
+
   <!-- Уведомления -->
   <div class="card">
     <h2>Уведомления в Telegram</h2>
@@ -328,11 +346,33 @@ async function load(){
   $("poll_interval").value = s.poll_interval || 10;
   $("demo_mode").checked = !!s.demo_mode;
 
+  BMTheme.setDefault(s.theme);
+  $("theme").value = BMTheme.defaultTheme();
+
   $("devList").innerHTML = "";
   (s.devices || []).forEach(d => addDeviceRow(d.name, d.id));
   if (!(s.devices||[]).length) addDeviceRow("", "");
 
   loadTelegram(s.telegram || {});
+}
+
+/* ---------------- Оформление ---------------- */
+/* Список темы по умолчанию сохраняется вместе с остальными настройками,
+   а переключатель в шапке меняет оформление только в этом браузере. */
+function initTheme(){
+  const sel = $("theme");
+  BMTheme.CHOICES.forEach(([value, label]) => sel.add(new Option(label, value)));
+  sel.value = BMTheme.defaultTheme();
+  BMTheme.onChange(renderThemeLocal);
+  renderThemeLocal();
+}
+
+function renderThemeLocal(){
+  const own = BMTheme.override();
+  $("themeLocal").textContent = own
+    ? `Сейчас в этом браузере выбрана своя тема: ${BMTheme.label(own)}. Тема по умолчанию на неё не влияет.`
+    : "В этом браузере действует тема по умолчанию. Переключатель в шапке страницы меняет оформление только здесь.";
+  $("themeResetBtn").classList.toggle("hidden", !own);
 }
 
 /* ---------------- Уведомления ---------------- */
@@ -514,6 +554,7 @@ async function saveSettings(){
     endpoint: $("endpoint").value,
     poll_interval: parseInt($("poll_interval").value) || 10,
     demo_mode: $("demo_mode").checked,
+    theme: $("theme").value,
     devices: collectDevices(),
     telegram: collectTelegram(),
   };
@@ -566,6 +607,7 @@ function logout(){ setToken(""); location.reload(); }
 function showToast(msg){ $("saveMsg").textContent = msg; clearTimeout(window._t);
   window._t = setTimeout(()=>{ $("saveMsg").textContent=""; }, 4000); }
 
+initTheme();
 load();
 </script>
 </body>
