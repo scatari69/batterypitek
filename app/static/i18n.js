@@ -159,7 +159,7 @@
         themeLabel: "Тема по умолчанию",
         themeHint: "Наборов два: «Dracula» — палитра Dracula и светлая Alucard, гарнитура Meslo, ровная панель; «Пиксель» — приборный VFD-дисплей и монохромный LCD с построчной развёрткой. «Авто» переключает светлый и тёмный вариант по настройке системы.",
         themeOwn: "Сейчас в этом браузере выбрана своя тема: {name}. Тема по умолчанию на неё не влияет.",
-        themeDefault: "В этом браузере действует тема по умолчанию. Переключатель в шапке страницы меняет оформление только здесь.",
+        themeDefault: "В этом браузере действует тема по умолчанию. Переключатель оформления меняет её только здесь.",
         themeReset: "Вернуть тему по умолчанию",
 
         language: "Язык",
@@ -167,7 +167,7 @@
         languageLabel: "Язык по умолчанию",
         languageHint: "На этом языке приходят и уведомления в Telegram.",
         langOwn: "Сейчас в этом браузере выбран свой язык: {name}. Язык по умолчанию на него не влияет.",
-        langDefault: "В этом браузере действует язык по умолчанию. Переключатель в футере страницы меняет язык только здесь.",
+        langDefault: "В этом браузере действует язык по умолчанию. Переключатель языка меняет его только здесь.",
         langReset: "Вернуть язык по умолчанию",
 
         tg: "Уведомления в Telegram",
@@ -396,7 +396,7 @@
         themeLabel: "Тема за замовчуванням",
         themeHint: "Наборів два: «Dracula» — палітра Dracula і світла Alucard, гарнітура Meslo, рівна панель; «Піксель» — приладовий VFD-дисплей і монохромний LCD з рядковою розгорткою. «Авто» перемикає світлий і темний варіант за налаштуванням системи.",
         themeOwn: "Зараз у цьому браузері обрано власну тему: {name}. Тема за замовчуванням на неї не впливає.",
-        themeDefault: "У цьому браузері діє тема за замовчуванням. Перемикач у шапці сторінки міняє оформлення тільки тут.",
+        themeDefault: "У цьому браузері діє тема за замовчуванням. Перемикач оформлення міняє її тільки тут.",
         themeReset: "Повернути тему за замовчуванням",
 
         language: "Мова",
@@ -404,7 +404,7 @@
         languageLabel: "Мова за замовчуванням",
         languageHint: "Цією мовою приходять і сповіщення в Telegram.",
         langOwn: "Зараз у цьому браузері обрано власну мову: {name}. Мова за замовчуванням на неї не впливає.",
-        langDefault: "У цьому браузері діє мова за замовчуванням. Перемикач у футері сторінки міняє мову тільки тут.",
+        langDefault: "У цьому браузері діє мова за замовчуванням. Перемикач мови міняє її тільки тут.",
         langReset: "Повернути мову за замовчуванням",
 
         tg: "Сповіщення в Telegram",
@@ -633,7 +633,7 @@
         themeLabel: "Default theme",
         themeHint: "Two sets: “Dracula” — the Dracula palette and its light Alucard variant, Meslo typeface, flat panel; “Pixel” — an instrument VFD display and a monochrome LCD with scanlines. “Auto” follows the system light/dark setting.",
         themeOwn: "This browser currently uses its own theme: {name}. The default theme does not affect it.",
-        themeDefault: "This browser follows the default theme. The switch in the page header changes the theme here only.",
+        themeDefault: "This browser follows the default theme. The theme switch changes it here only.",
         themeReset: "Back to the default theme",
 
         language: "Language",
@@ -641,7 +641,7 @@
         languageLabel: "Default language",
         languageHint: "Telegram notifications are sent in this language too.",
         langOwn: "This browser currently uses its own language: {name}. The default language does not affect it.",
-        langDefault: "This browser follows the default language. The switch in the page footer changes the language here only.",
+        langDefault: "This browser follows the default language. The language switch changes it here only.",
         langReset: "Back to the default language",
 
         tg: "Telegram notifications",

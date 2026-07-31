@@ -79,7 +79,8 @@
   td.val { text-align:right; font-variant-numeric:tabular-nums; font-weight:700;
     white-space:nowrap; }
 
-  .statusbar { display:flex; gap:10px; align-items:center; margin-top:16px; padding:0 4px; }
+  .statusbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+    margin-top:16px; padding:0 4px; }
 </style>
 </head>
 <body>
@@ -94,7 +95,6 @@
     </div>
     <span class="spacer"></span>
     <span class="badge" id="demoBadge" data-i18n="common.demo" hidden>Демо</span>
-    <span data-theme-picker></span>
     <span class="conn"><span class="led" id="connDot"></span>
       <span id="connText" data-i18n="device.conn">Опрос…</span></span>
   </header>
@@ -133,6 +133,7 @@
     <span id="footer" data-i18n="common.polling">опрос…</span><span class="cursor" id="cursor"></span>
     <span class="spacer"></span>
     <a id="srcLink" target="_blank" rel="noopener" data-i18n="common.source" hidden></a>
+    <span data-theme-picker></span>
     <span data-lang-picker></span>
   </div>
 </div>
