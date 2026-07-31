@@ -126,9 +126,17 @@ let lastData = null;         /* последний ответ — чтобы п�
 let deviceCount = 0;
 
 function etaCell(dev) {
+  const note = dev.eta_note;
+  /* Заряд — считаем время до 100 %, разряд — до целевого уровня. */
+  if (dev.eta_mode === "charge") {
+    if (note === "full")
+      return `<span class="eta t-charge">${T("index.etaFull")}</span>`;
+    const d = note === "ok" ? fmtDuration(dev.eta_minutes) : null;
+    return `<span class="eta t-charge">${d ? T("index.etaToFull", { dur: d })
+      : T("index.etaCharging")}</span>`;
+  }
   if (dev.state === "charging")
     return `<span class="eta t-charge">${T("index.etaCharging")}</span>`;
-  const note = dev.eta_note;
   if (note === "at_or_below")
     return `<span class="eta t-warn">${T("index.etaAtOrBelow", { pct: targetSoc })}</span>`;
   if (note === "ok") {

@@ -344,11 +344,34 @@ def _capacities(data):
     return remain_ah, total_ah
 
 
+def _rate_amps(data, charging: bool):
+    """Ток (A, по модулю) в нужном направлении.
+
+    Берём знак тока; если его нет — оцениваем как мощность/напряжение,
+    полагаясь на определённый ранее режим.
+    """
+    primary = data.get("primary", {})
+    cur = primary.get("current")
+    if cur and isinstance(cur["value"], (int, float)):
+        v = cur["value"]
+        if charging and v > 0.02:
+            return v
+        if not charging and v < -0.02:
+            return -v
+    if data.get("state") == ("charging" if charging else "discharging"):
+        p, v = primary.get("power"), primary.get("voltage")
+        if (p and v and isinstance(p["value"], (int, float)) and isinstance(v["value"], (int, float))
+                and v["value"] > 0 and p["value"] > 0):
+            return p["value"] / v["value"]
+    return None
+
+
 def estimate_time_to_pct(data, target_pct: int = 30):
     """Оценка времени (в минутах) до разряда батареи до target_pct.
 
     Кулоновский метод: (остаточная_Ah − target·полная_Ah) / ток_разряда.
-    Возвращает {"minutes": float, "note": str} либо None, если оценить нельзя.
+    Возвращает {"minutes": float, "note": str, "mode": "discharge"} либо None,
+    если оценить нельзя.
     Note:
       ok            — оценка посчитана;
       at_or_below   — заряд уже на уровне target или ниже;
@@ -361,29 +384,61 @@ def estimate_time_to_pct(data, target_pct: int = 30):
         return None
     soc = soc_m["value"]
     if soc <= target_pct:
-        return {"minutes": 0.0, "note": "at_or_below"}
+        return {"minutes": 0.0, "note": "at_or_below", "mode": "discharge"}
 
     remain_ah, total_ah = _capacities(data)
     if remain_ah is None or total_ah is None or total_ah <= 0:
-        return {"minutes": None, "note": "no_data"}
+        return {"minutes": None, "note": "no_data", "mode": "discharge"}
 
-    # Ток разряда (A). Берём знак тока; иначе оцениваем как мощность/напряжение.
-    rate = None
-    cur = primary.get("current")
-    if cur and isinstance(cur["value"], (int, float)) and cur["value"] < -0.02:
-        rate = abs(cur["value"])
-    elif data.get("state") == "discharging":
-        p, v = primary.get("power"), primary.get("voltage")
-        if (p and v and isinstance(p["value"], (int, float)) and isinstance(v["value"], (int, float))
-                and v["value"] > 0 and p["value"] > 0):
-            rate = p["value"] / v["value"]
-
+    rate = _rate_amps(data, charging=False)
     if not rate or rate <= 0:
-        return {"minutes": None, "note": "not_discharging"}
+        return {"minutes": None, "note": "not_discharging", "mode": "discharge"}
 
     above = remain_ah - (target_pct / 100.0) * total_ah
     if above <= 0:
-        return {"minutes": 0.0, "note": "at_or_below"}
+        return {"minutes": 0.0, "note": "at_or_below", "mode": "discharge"}
 
     hours = above / rate  # Ah / A = ч
-    return {"minutes": hours * 60.0, "note": "ok"}
+    return {"minutes": hours * 60.0, "note": "ok", "mode": "discharge"}
+
+
+def estimate_time_to_full(data):
+    """Оценка времени (в минутах) до полного заряда (100%).
+
+    Кулоновский метод: (полная_Ah − остаточная_Ah) / ток_заряда.
+    Возвращает {"minutes": float, "note": str, "mode": "charge"} либо None,
+    если оценить нельзя.
+    Note:
+      ok           — оценка посчитана;
+      full         — батарея уже заряжена;
+      not_charging — заряд не идёт (ток не определён);
+      no_data      — недостаточно данных (нет ёмкости).
+    """
+    primary = data.get("primary", {})
+    soc_m = primary.get("soc")
+    if not soc_m or not isinstance(soc_m["value"], (int, float)):
+        return None
+    if soc_m["value"] >= 99.5:
+        return {"minutes": 0.0, "note": "full", "mode": "charge"}
+
+    remain_ah, total_ah = _capacities(data)
+    if remain_ah is None or total_ah is None or total_ah <= 0:
+        return {"minutes": None, "note": "no_data", "mode": "charge"}
+
+    rate = _rate_amps(data, charging=True)
+    if not rate or rate <= 0:
+        return {"minutes": None, "note": "not_charging", "mode": "charge"}
+
+    missing = total_ah - remain_ah
+    if missing <= 0:
+        return {"minutes": 0.0, "note": "full", "mode": "charge"}
+
+    hours = missing / rate  # Ah / A = ч
+    return {"minutes": hours * 60.0, "note": "ok", "mode": "charge"}
+
+
+def estimate_eta(data, target_pct: int = 30):
+    """ETA для интерфейса: при заряде — до 100%, иначе — до target_pct."""
+    if data.get("state") == "charging":
+        return estimate_time_to_full(data)
+    return estimate_time_to_pct(data, target_pct)

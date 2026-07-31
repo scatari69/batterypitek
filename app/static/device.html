@@ -204,6 +204,17 @@ function setConn(online, err) {
 
 function etaText(eta) {
   if (!eta) return "";
+  /* Заряд — считаем время до 100 %, разряд — до целевого уровня. */
+  if (eta.mode === "charge") {
+    if (eta.note === "full")
+      return `<span class="t-charge">${T("device.etaFull")}</span>`;
+    if (eta.note === "no_data")
+      return `<span class="t-dim">${T("device.etaNoData")}</span>`;
+    if (eta.note !== "ok")
+      return `<span class="t-dim">${T("device.etaNotCharging")}</span>`;
+    const dc = fmtDuration(eta.minutes);
+    return dc ? `<span class="t-charge">${T("device.etaToFull", { dur: dc })}</span>` : "";
+  }
   if (eta.note === "at_or_below")
     return `<span class="t-warn">${T("device.etaAtOrBelow", { pct: targetSoc })}</span>`;
   if (eta.note === "not_discharging")

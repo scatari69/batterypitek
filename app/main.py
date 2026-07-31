@@ -98,7 +98,7 @@ def _fetch_normalized(device_id: str, lang: str | None = None) -> dict:
 
     data = metrics.normalize(status, spec)
     data["target_soc"] = store.target_soc
-    data["eta"] = metrics.estimate_time_to_pct(data, data["target_soc"])
+    data["eta"] = metrics.estimate_eta(data, data["target_soc"])
     data["id"] = device_id
     dev = store.device_map(lang).get(device_id)
     data["name"] = dev.name if dev else device_id
@@ -173,6 +173,7 @@ def api_devices(lang: str = Depends(req_lang)):
                 state=data["state"],
                 eta_minutes=eta.get("minutes"),
                 eta_note=eta.get("note"),
+                eta_mode=eta.get("mode"),
                 voltage=volt["value"] if volt else None,
                 voltage_unit=volt["unit"] if volt else "",
                 current=cur["value"] if cur else None,
