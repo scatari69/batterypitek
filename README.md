@@ -1,6 +1,6 @@
 # 🔋 Battery Monitor — Tuya (DT20W)
 
-[![License: AGPL v3](https://img.shields.io/github/license/scatari69/batterypitek?color=green)](LICENSE)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-green.svg)](LICENSE)
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
