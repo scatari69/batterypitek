@@ -14,6 +14,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import demo, i18n, metrics, notifier
+from .config import settings
 from .store import store
 from .tuya_client import TuyaError
 
@@ -151,6 +152,8 @@ def api_config(lang: str = Depends(req_lang)):
         "theme": store.theme,
         "language": store.language,
         "target_soc": store.target_soc,
+        # Ссылка на исходники для футера (AGPL-3.0 §13), задаётся SOURCE_URL.
+        "source_url": settings.source_url,
         "devices": [{"id": d.id, "name": d.name} for d in store.devices(lang)],
     }
 

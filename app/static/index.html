@@ -111,6 +111,7 @@
     <span id="upd" data-i18n="common.polling">опрос…</span><span class="cursor" id="cursor"></span>
     <span class="spacer"></span>
     <span id="footer"></span>
+    <a id="srcLink" target="_blank" rel="noopener" data-i18n="common.source" hidden></a>
     <span data-lang-picker></span>
   </div>
 </div>
@@ -181,12 +182,20 @@ async function loadConfig() {
     $("demoBadge").hidden = !c.demo_mode;
     deviceCount = (c.devices || []).length;
     setTarget(c.target_soc);
+    setSource(c.source_url);
     renderSub();
   } catch (e) { $("sub").textContent = T("common.noServer"); }
 }
 
 function renderSub() {
   $("sub").textContent = `${deviceCount} ${BMI18n.plural(deviceCount, "devices")}`;
+}
+
+/* Ссылка на исходники (AGPL-3.0 §13); пустой SOURCE_URL прячет её. */
+function setSource(url) {
+  const a = $("srcLink");
+  a.hidden = !url;
+  if (url) a.href = url;
 }
 
 /* Целевой уровень мог смениться в админке — заголовок столбца идёт следом. */

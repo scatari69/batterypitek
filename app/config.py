@@ -47,6 +47,12 @@ class Settings:
     # Язык по умолчанию (bootstrap); допустимые значения — LANGS в app/i18n.py.
     language: str = os.getenv("LANGUAGE", "").strip()
 
+    # Ссылка на исходники в футере. AGPL-3.0 §13 требует, чтобы изменённая
+    # версия давала своим пользователям доступ к исходному коду — форку нужно
+    # указать здесь свой репозиторий. Пустая строка убирает ссылку.
+    source_url: str = os.getenv(
+        "SOURCE_URL", "https://github.com/scatari69/batterypitek").strip()
+
     # Каталог для постоянных настроек (settings.json).
     data_dir: str = os.getenv("DATA_DIR", "data").strip()
 

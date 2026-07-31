@@ -132,6 +132,7 @@
   <div class="statusbar label">
     <span id="footer" data-i18n="common.polling">опрос…</span><span class="cursor" id="cursor"></span>
     <span class="spacer"></span>
+    <a id="srcLink" target="_blank" rel="noopener" data-i18n="common.source" hidden></a>
     <span data-lang-picker></span>
   </div>
 </div>
@@ -173,11 +174,19 @@ async function loadConfig() {
     BMI18n.setDefault(c.language);
     pollInterval = c.poll_interval || 10;
     if (typeof c.target_soc === "number") targetSoc = c.target_soc;
+    setSource(c.source_url);
     $("demoBadge").hidden = !c.demo_mode;
     const dev = (c.devices || []).find(d => d.id === DEVICE_ID);
     if (dev) $("devName").textContent = dev.name;
     $("devsub").textContent = `${DEVICE_ID} · ${new URL(c.endpoint).host}`;
   } catch (e) { $("devsub").textContent = T("common.noServer"); }
+}
+
+/* Ссылка на исходники (AGPL-3.0 §13); пустой SOURCE_URL прячет её. */
+function setSource(url) {
+  const a = $("srcLink");
+  a.hidden = !url;
+  if (url) a.href = url;
 }
 
 let conn = { online: false, err: null };
